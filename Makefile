@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only
+
 .PHONY: all
 all: download-metadata download-signatures extract-keyid extract-fingerprint
 

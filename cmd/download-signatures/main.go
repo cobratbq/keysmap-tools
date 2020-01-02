@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
 package main
 
 import (
@@ -31,7 +33,7 @@ func main() {
 			if exiterr, ok := err.(*exec.ExitError); ok && exiterr.ProcessState.ExitCode() == 22 {
 				// no need to panic if document is simply unavailable (404)
 				f, err := os.Create(destinationPath)
-				expectSuccess(err, "Failed to create empty file " + destinationPath)
+				expectSuccess(err, "Failed to create empty file "+destinationPath)
 				f.Close()
 				continue
 			}

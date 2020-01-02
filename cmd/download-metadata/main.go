@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
 package main
 
 import (
@@ -43,7 +45,7 @@ func main() {
 		url := generateMetadataURL(groupID, artifactID)
 		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
 		err := cmd("curl", "-f", "-z", destFile, "-o", destFile, url)
-		expectSuccess(err, "Failed to download metadata for artifact " + groupID + ":" + artifactID)
+		expectSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID)
 	}
 	if err != io.EOF {
 		panic(err.Error())
