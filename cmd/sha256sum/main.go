@@ -122,7 +122,7 @@ func verifySource(c *config, source string) (uint, error) {
 			// FIXME how to handle error
 			panic(err.Error())
 		}
-		matches := checksumLineFormat.FindStringSubmatch(line)
+		matches := checksumLineFormat.FindStringSubmatch(strings.TrimRight(line, "\n\r"))
 		if matches == nil {
 			continue
 		}
