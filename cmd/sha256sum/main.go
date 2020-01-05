@@ -12,12 +12,15 @@ import (
 
 func main() {
 	config := initConfig()
+	if err := verifyConfig(config); err != nil {
+		os.Exit(1)
+	}
 
 	exitCode := 0
 	if config.checkMode {
 		failures := uint(0)
 		for _, source := range config.sources {
-			sourceFails, err := verifySource(source)
+			sourceFails, err := verifySource(config, source)
 			if err != nil {
 				panic("Unexpected failure verifying source '" + source + "': " + err.Error())
 			}
@@ -45,6 +48,7 @@ func main() {
 type config struct {
 	checkMode bool
 	sources   []string
+	quiet     bool
 }
 
 func initConfig() *config {
@@ -52,7 +56,7 @@ func initConfig() *config {
 	c1 := flag.Bool("c", false, "verify existing checksums")
 	c2 := flag.Bool("check", false, "")
 	_ = flag.Bool("t", false, "text mode")
-	_ = flag.Bool("quiet", false, "Silence reporting output.")
+	quiet := flag.Bool("quiet", false, "Silence reporting output.")
 	// _ = flag.Bool("z", false, "end each output line with NUL")
 	flag.Parse()
 
@@ -63,10 +67,19 @@ func initConfig() *config {
 	} else {
 		c.sources = append(c.sources, flag.Args()...)
 	}
+	c.quiet = *quiet
 	return &c
 }
 
-func verifySource(source string) (uint, error) {
+func verifyConfig(config *config) error {
+	if !config.checkMode && config.quiet {
+		os.Stderr.WriteString("sha256sum: the --quiet option is meaningful only when verifying checksums\n")
+		return os.ErrInvalid
+	}
+	return nil
+}
+
+func verifySource(c *config, source string) (uint, error) {
 	var reader *bufio.Reader
 	if source == "-" {
 		reader = bufio.NewReader(os.Stdin)
@@ -124,16 +137,22 @@ func verifySource(source string) (uint, error) {
 		}
 		if fmt.Sprintf("%064x", actual) != expected {
 			failures++
-			writeResult(fileName, "FAILED")
+			writeResultFailed(fileName)
 			continue
 		}
-		writeResult(fileName, "OK")
+		if !c.quiet {
+			writeResultOK(fileName)
+		}
 	}
 	return failures, nil
 }
 
-func writeResult(source, result string) {
-	os.Stdout.WriteString(source + ": " + result + "\n")
+func writeResultFailed(source string) {
+	os.Stdout.WriteString(source + ": FAILED\n")
+}
+
+func writeResultOK(source string) {
+	os.Stdout.WriteString(source + ": OK\n")
 }
 
 func checksumSource(out io.Writer, source string) ([]byte, error) {
