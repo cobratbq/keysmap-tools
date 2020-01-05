@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -22,7 +23,19 @@ func main() {
 		for _, source := range config.sources {
 			sourceFails, err := verifySource(config, source)
 			if err != nil {
-				panic("Unexpected failure verifying source '" + source + "': " + err.Error())
+				if err == os.ErrNotExist {
+					os.Stderr.WriteString("sha256sum: " + source + ": No such file or directory\n")
+					exitCode = 1
+				} else if err == os.ErrInvalid {
+					os.Stderr.WriteString("sha256sum: " + source + ": read error\n")
+					exitCode = 1
+				} else if err == io.ErrNoProgress {
+					os.Stderr.WriteString("sha256sum: " + source + ": no properly formatted SHA256 checksum lines found\n")
+					exitCode = 1
+				} else {
+					panic("Unexpected failure verifying source '" + source + "': " + err.Error())
+				}
+				continue
 			}
 			failures += sourceFails
 		}
@@ -79,6 +92,8 @@ func verifyConfig(config *config) error {
 	return nil
 }
 
+var checksumLineFormat = regexp.MustCompile(`^([0-9a-f]{64}) \*(.+)$`)
+
 func verifySource(c *config, source string) (uint, error) {
 	var reader *bufio.Reader
 	if source == "-" {
@@ -96,6 +111,7 @@ func verifySource(c *config, source string) (uint, error) {
 		}
 		reader = bufio.NewReader(f)
 	}
+	found := uint(0)
 	failures := uint(0)
 	for {
 		line, err := reader.ReadString('\n')
@@ -106,19 +122,12 @@ func verifySource(c *config, source string) (uint, error) {
 			// FIXME how to handle error
 			panic(err.Error())
 		}
-		line = strings.TrimSpace(line)
-		if line == "" {
+		matches := checksumLineFormat.FindStringSubmatch(line)
+		if matches == nil {
 			continue
 		}
-		parts := strings.SplitN(line, " ", 2)
-		if len(parts) != 2 {
-			failures++
-			// FIXME check correct response
-			panic("To be implemented.")
-			continue
-		}
-		expected := strings.TrimSpace(parts[0])
-		fileName := strings.TrimLeft(strings.TrimSpace(parts[1]), "*")
+		found++
+		fileName := strings.TrimSpace(matches[2])
 		var actual []byte
 		if fileName == "-" {
 			actual, err = checksum(os.Stdin)
@@ -126,16 +135,13 @@ func verifySource(c *config, source string) (uint, error) {
 			f, err := os.Open(fileName)
 			if err != nil {
 				// FIXME check correct response
-				panic("To be implemented.")
+				panic("To be implemented: " + err.Error())
 			}
 			actual, err = checksum(f)
-			if err != nil {
-				// FIXME check correct response
-				panic("To be implemented.")
-			}
+			expectSuccess(err, "sha256sum: "+fileName+": failed to read all content")
 			f.Close()
 		}
-		if fmt.Sprintf("%064x", actual) != expected {
+		if fmt.Sprintf("%064x", actual) != matches[1] {
 			failures++
 			writeResultFailed(fileName)
 			continue
@@ -143,6 +149,9 @@ func verifySource(c *config, source string) (uint, error) {
 		if !c.quiet {
 			writeResultOK(fileName)
 		}
+	}
+	if found == 0 {
+		return 0, io.ErrNoProgress
 	}
 	return failures, nil
 }
