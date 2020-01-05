@@ -3,4 +3,4 @@
 /download-signatures
 /extract-keyid
 /extract-fingerprint
-
+/sha256sum
