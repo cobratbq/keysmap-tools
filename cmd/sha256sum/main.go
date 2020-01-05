@@ -117,8 +117,7 @@ func verifySource(c *config, source string) (uint, error) {
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
 			break
-		}
-		if err != nil {
+		} else if err != nil {
 			// FIXME how to handle error
 			panic(err.Error())
 		}
@@ -134,8 +133,7 @@ func verifySource(c *config, source string) (uint, error) {
 		} else {
 			f, err := os.Open(fileName)
 			if err != nil {
-				// FIXME check correct response
-				panic("To be implemented: " + err.Error())
+				return 0, os.ErrNotExist
 			}
 			actual, err = checksum(f)
 			expectSuccess(err, "sha256sum: "+fileName+": failed to read all content")
