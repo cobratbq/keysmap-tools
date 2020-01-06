@@ -25,16 +25,14 @@ func main() {
 			if err != nil {
 				if err == os.ErrNotExist {
 					os.Stderr.WriteString("sha256sum: " + source + ": No such file or directory\n")
-					exitCode = 1
 				} else if err == os.ErrInvalid {
 					os.Stderr.WriteString("sha256sum: " + source + ": read error\n")
-					exitCode = 1
 				} else if err == io.ErrNoProgress {
 					os.Stderr.WriteString("sha256sum: " + source + ": no properly formatted SHA256 checksum lines found\n")
-					exitCode = 1
 				} else {
 					panic("Unexpected failure verifying source '" + source + "': " + err.Error())
 				}
+				exitCode = 1
 				continue
 			}
 			failures += sourceFails
@@ -47,7 +45,12 @@ func main() {
 		var err error
 		var sum []byte
 		for _, source := range config.sources {
-			if sum, err = checksumSource(os.Stdout, source); err == os.ErrInvalid {
+			if sum, err = checksumSource(os.Stdout, source); err != nil {
+				if err == os.ErrNotExist {
+					os.Stderr.WriteString("sha256sum: " + source + ": No such file or directory\n")
+				} else if err == os.ErrInvalid {
+					os.Stderr.WriteString("sha256sum: " + source + ": Is a directory\n")
+				}
 				exitCode = 1
 				continue
 			}
@@ -65,12 +68,11 @@ type config struct {
 }
 
 func initConfig() *config {
-	_ = flag.Bool("b", true, "binary mode")
+	_ = flag.Bool("b", true, "binary mode (no-op)")
 	c1 := flag.Bool("c", false, "verify existing checksums")
 	c2 := flag.Bool("check", false, "")
-	_ = flag.Bool("t", false, "text mode")
+	_ = flag.Bool("t", false, "text mode (no-op)")
 	quiet := flag.Bool("quiet", false, "Silence reporting output.")
-	// _ = flag.Bool("z", false, "end each output line with NUL")
 	flag.Parse()
 
 	var c config
@@ -141,12 +143,10 @@ func verifySource(c *config, source string) (uint, error) {
 		}
 		if fmt.Sprintf("%064x", actual) != matches[1] {
 			failures++
-			writeResultFailed(fileName)
+			writeResult(c.quiet, fileName, false)
 			continue
 		}
-		if !c.quiet {
-			writeResultOK(fileName)
-		}
+		writeResult(c.quiet, fileName, true)
 	}
 	if found == 0 {
 		return 0, io.ErrNoProgress
@@ -154,12 +154,12 @@ func verifySource(c *config, source string) (uint, error) {
 	return failures, nil
 }
 
-func writeResultFailed(source string) {
-	os.Stdout.WriteString(source + ": FAILED\n")
-}
-
-func writeResultOK(source string) {
-	os.Stdout.WriteString(source + ": OK\n")
+func writeResult(quiet bool, source string, success bool) {
+	if success && !quiet {
+		os.Stdout.WriteString(source + ": OK\n")
+	} else if !success {
+		os.Stdout.WriteString(source + ": FAILED\n")
+	}
 }
 
 func checksumSource(out io.Writer, source string) ([]byte, error) {
@@ -170,14 +170,12 @@ func checksumSource(out io.Writer, source string) ([]byte, error) {
 		var err error
 		var f *os.File
 		if f, err = os.Open(source); err != nil {
-			// FIXME how to handle error here, exit code?
 			return nil, os.ErrNotExist
 		}
 		defer closeLogged(f)
 		stat, err := f.Stat()
 		expectSuccess(err, "Failed to acquire file metadata: %v")
 		if stat.IsDir() {
-			os.Stderr.WriteString("sha256sum: " + source + ": Is a directory\n")
 			return nil, os.ErrInvalid
 		}
 		in = f
