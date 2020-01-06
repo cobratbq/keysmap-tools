@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// TODO consider if we should change error handling tactics, as we silence the original error now - in favor of our own error.
 func main() {
 	config := initConfig()
 	if err := verifyConfig(config); err != nil {
@@ -70,7 +71,7 @@ type config struct {
 func initConfig() *config {
 	_ = flag.Bool("b", true, "binary mode (no-op)")
 	c1 := flag.Bool("c", false, "verify existing checksums")
-	c2 := flag.Bool("check", false, "")
+	c2 := flag.Bool("check", false, "verify existing checksums")
 	_ = flag.Bool("t", false, "text mode (no-op)")
 	quiet := flag.Bool("quiet", false, "Silence reporting output.")
 	flag.Parse()
