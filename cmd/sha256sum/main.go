@@ -20,6 +20,7 @@ func main() {
 
 	exitCode := 0
 	if config.checkMode {
+		// check existing checksum files
 		failures := uint(0)
 		for _, source := range config.sources {
 			sourceFails, err := verifySource(config, source)
@@ -43,6 +44,7 @@ func main() {
 			os.Stderr.WriteString(fmt.Sprintf("sha256sum: WARNING: %d computed checksum(s) did NOT match\n", failures))
 		}
 	} else {
+		// generate checksum content, given provided inputs
 		var err error
 		var sum []byte
 		for _, source := range config.sources {
@@ -120,10 +122,8 @@ func verifySource(c *config, source string) (uint, error) {
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
 			break
-		} else if err != nil {
-			// FIXME how to handle error
-			panic(err.Error())
 		}
+		expectSuccess(err, "Unexpected interruption while reading content: %v")
 		matches := checksumLineFormat.FindStringSubmatch(strings.TrimRight(line, "\n\r"))
 		if matches == nil {
 			continue
