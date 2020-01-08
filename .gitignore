@@ -4,3 +4,4 @@
 /extract-keyid
 /extract-fingerprint
 /sha256sum
+/canonicalize-keysmap

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 .PHONY: all
-all: download-metadata download-signatures extract-keyid extract-fingerprint sha256sum
+all: download-metadata download-signatures extract-keyid extract-fingerprint sha256sum canonicalize-keysmap
 
 download-metadata: cmd/download-metadata/*.go
 	go build ./cmd/download-metadata
@@ -18,6 +18,9 @@ extract-fingerprint: cmd/extract-fingerprint/*.go
 sha256sum: cmd/sha256sum/*.go
 	go build ./cmd/sha256sum
 
+canonicalize-keysmap: cmd/canonicalize-keysmap/*.go
+	go build ./cmd/canonicalize-keysmap
+
 .PHONY: clean
 clean:
-	rm -f download-metadata download-signatures extract-keyid extract-fingerprint
+	rm -f download-metadata download-signatures extract-keyid extract-fingerprint sha256sum canonicalize-keysmap
