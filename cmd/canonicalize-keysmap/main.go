@@ -28,18 +28,11 @@ func main() {
 			continue
 		}
 		for artifactID, artifact := range group {
-			// FIXME `artifactVersionRanges` to replace `allFingerprintsSame`
-			artifactFingerprint := allFingerprintsSame(artifact)
-			expectFingerprintSet(artifactFingerprint)
-			if artifactFingerprint != nil {
-				writeKeysMapLine(groupID, artifactID, "*", artifactFingerprint)
-				continue
-			}
-			ranges := artifactVersionRanges(artifact)
-			for versionrange, fingerprint := range ranges {
+			ranges, order := artifactVersionRanges(artifact)
+			for _, versionrange := range order {
+				fingerprint := ranges[versionrange]
 				writeKeysMapLine(groupID, artifactID, versionrange, fingerprint[:])
 			}
-			// FIXME identify latest version, assume fingerprint for latest version to be used for future versions.
 		}
 	}
 }
@@ -60,35 +53,45 @@ func expectFingerprintSet(fpr []byte) {
 	}
 }
 
-func artifactVersionRanges(artifact map[string][20]byte) map[string][20]byte {
-	ranges := make(map[string][20]byte, 0)
+func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, []string) {
 	versions := make([]string, 0)
 	for v := range artifact {
 		versions = append(versions, v)
 	}
-	order := orderVersions(versions)
-	os.Stderr.WriteString(fmt.Sprintf("Versions: %v\n", order))
+	versions = orderVersions(versions)
 
+	ranges := make(map[string][20]byte, 0)
+	rangeorder := make([]string, 0)
 	rangeStart := 0
-	fingerprint := artifact[order[0]]
-	for i := 1; i < len(order); i++ {
-		if artifact[order[i]] == fingerprint {
+	fingerprint := artifact[versions[0]]
+	for i := 1; i < len(versions); i++ {
+		if artifact[versions[i]] == fingerprint {
 			continue
 		}
 		if rangeStart == i-1 {
 			// exactly 1 version in range, use version as-is
-			ranges[order[rangeStart]] = artifact[order[rangeStart]]
+			rangekey := versions[rangeStart]
+			ranges[rangekey] = artifact[versions[rangeStart]]
+			rangeorder = append(rangeorder, rangekey)
 		} else {
 			// more than 1 version in range
-			ranges["["+order[rangeStart]+","+order[i-1]+"]"] = artifact[order[rangeStart]]
+			rangekey := "[" + versions[rangeStart] + "," + versions[i-1] + "]"
+			ranges[rangekey] = artifact[versions[rangeStart]]
+			rangeorder = append(rangeorder, rangekey)
 		}
 		rangeStart = i
-		fingerprint = artifact[order[rangeStart]]
+		fingerprint = artifact[versions[rangeStart]]
 	}
-	// FIXME ensure last entry is added too, so no versions are skipped!
-	// FIXME replace version specifier with '*' for single-entry ranges
-	// FIXME preserve order of version ranges
-	return ranges
+	if rangeStart == 0 {
+		rangekey := "*"
+		ranges[rangekey] = artifact[versions[rangeStart]]
+		rangeorder = append(rangeorder, rangekey)
+	} else if rangeStart < len(versions) {
+		rangekey := "[" + versions[rangeStart] + ",)"
+		ranges[rangekey] = artifact[versions[rangeStart]]
+		rangeorder = append(rangeorder, rangekey)
+	}
+	return ranges, rangeorder
 }
 
 func orderVersions(versions []string) []string {
@@ -143,7 +146,6 @@ func orderVersions(versions []string) []string {
 	for _, v := range components {
 		sorted = append(sorted, v.version)
 	}
-	os.Stderr.WriteString(fmt.Sprintf("%+v\n", sorted))
 	return sorted
 }
 
@@ -170,12 +172,17 @@ func componentize(version string) component {
 	cmp := ""
 	for _, c := range []byte(version) {
 		// FIXME added '_' as separator, not sure if this is correct but found in artifact-version list.
-		if c == '.' || c == '-' || c == '_' || (len(cmp) > 0 && classify(cmp[len(cmp)-1]) != classify(c)) {
-			// in case of explicit separators '.' and '-', and implicit separation
+		if c == '.' || c == '-' || c == '_' {
+			// in case of explicit separators '.' and '-'
 			expect(len(cmp) > 0, "BUG? expected separator to separate either an alpha or numeric component.")
 			components = append(components, strings.ToLower(cmp))
 			cmp = ""
 			continue
+		}
+		if len(cmp) > 0 && classify(cmp[len(cmp)-1]) != classify(c) {
+			// in case of implicit separation
+			components = append(components, strings.ToLower(cmp))
+			cmp = ""
 		}
 		cmp += string(c)
 	}
