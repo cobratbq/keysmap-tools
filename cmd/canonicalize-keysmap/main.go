@@ -17,7 +17,7 @@ import (
 var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9][0-9a-zA-Z\.\-_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
 
 func main() {
-	// map: groupID -> artifactID -> version -> key fingerprint
+	// groupID -> artifactID -> version -> key fingerprint
 	keysmap := readKeysMap(bufio.NewReader(os.Stdin))
 
 	for groupID, group := range keysmap {
@@ -55,14 +55,14 @@ func expectFingerprintSet(fpr []byte) {
 }
 
 func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, []string) {
-	versions := make([]string, 0)
+	versions := make([]string, 0, len(artifact))
 	for v := range artifact {
 		versions = append(versions, v)
 	}
 	versions = orderVersions(versions)
 
-	ranges := make(map[string][20]byte, 0)
-	rangeorder := make([]string, 0)
+	ranges := make(map[string][20]byte, 1)
+	rangeorder := make([]string, 0, 1)
 	rangeStart := 0
 	fingerprint := artifact[versions[0]]
 	for i := 1; i < len(versions); i++ {
@@ -96,7 +96,7 @@ func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, [
 }
 
 func orderVersions(versions []string) []string {
-	components := make([]component, 0)
+	components := make([]component, 0, len(versions))
 	for _, v := range versions {
 		components = append(components, componentize(v))
 	}
@@ -110,6 +110,7 @@ func orderVersions(versions []string) []string {
 
 // versionsorter produces a function that sorts according to Maven's rules on
 // version ordering:
+// (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html)
 //
 // 1. component:
 //    all-alpha / all-numeric
@@ -240,6 +241,7 @@ func allArtifactsVersionsSame(group map[string]map[string][20]byte) []byte {
 }
 
 func readKeysMap(reader *bufio.Reader) map[string]map[string]map[string][20]byte {
+	// groupID -> artifactID -> version -> fingerprint
 	keysmap := make(map[string]map[string]map[string][20]byte, 0)
 	for {
 		line, err := reader.ReadString('\n')
