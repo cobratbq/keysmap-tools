@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -26,15 +28,18 @@ func main() {
 			continue
 		}
 		for artifactID, artifact := range group {
+			// FIXME `artifactVersionRanges` to replace `allFingerprintsSame`
 			artifactFingerprint := allFingerprintsSame(artifact)
 			expectFingerprintSet(artifactFingerprint)
 			if artifactFingerprint != nil {
 				writeKeysMapLine(groupID, artifactID, "*", artifactFingerprint)
 				continue
 			}
-			for version, fingerprint := range artifact {
-				writeKeysMapLine(groupID, artifactID, version, fingerprint[:])
+			ranges := artifactVersionRanges(artifact)
+			for versionrange, fingerprint := range ranges {
+				writeKeysMapLine(groupID, artifactID, versionrange, fingerprint[:])
 			}
+			// FIXME identify latest version, assume fingerprint for latest version to be used for future versions.
 		}
 	}
 }
@@ -55,18 +60,92 @@ func expectFingerprintSet(fpr []byte) {
 	}
 }
 
-// func artifactVersionRangesSame(artifact map[string][20]byte) map[string][20]byte {
+func artifactVersionRanges(artifact map[string][20]byte) map[string][20]byte {
+	ranges := make(map[string][20]byte, 0)
+	versions := make([]string, 0)
+	for v := range artifact {
+		versions = append(versions, v)
+	}
+	order := orderVersions(versions)
+	os.Stderr.WriteString(fmt.Sprintf("Versions: %v\n", order))
 
-// }
+	rangeStart := 0
+	fingerprint := artifact[order[0]]
+	for i := 1; i < len(order); i++ {
+		if artifact[order[i]] == fingerprint {
+			continue
+		}
+		if rangeStart == i-1 {
+			// exactly 1 version in range, use version as-is
+			ranges[order[rangeStart]] = artifact[order[rangeStart]]
+		} else {
+			// more than 1 version in range
+			ranges["["+order[rangeStart]+","+order[i-1]+"]"] = artifact[order[rangeStart]]
+		}
+		rangeStart = i
+		fingerprint = artifact[order[rangeStart]]
+	}
+	// FIXME ensure last entry is added too, so no versions are skipped!
+	// FIXME replace version specifier with '*' for single-entry ranges
+	// FIXME preserve order of version ranges
+	return ranges
+}
 
-// func orderVersions(versions []string) []string {
-// 	mapping := make(map[string][]string, 0)
-// 	for _, v := range versions {
-// 		versionTokens = append(versionTokens, tokenize(v))
-// 	}
-// 	// FIXME now start sorting based on information from the mapping
-// 	panic("TODO")
-// }
+func orderVersions(versions []string) []string {
+	components := make([]component, 0)
+	for _, v := range versions {
+		components = append(components, componentize(v))
+	}
+	sort.Slice(components, func(i, j int) bool {
+		compA := components[i].components[:]
+		compB := components[j].components[:]
+		for len(compA) < len(compB) {
+			compA = append(compA, "0")
+		}
+		for len(compA) > len(compB) {
+			compB = append(compB, "0")
+		}
+		for k := 0; k < len(compA) || k < len(compB); k++ {
+			classA := classify(byte(compA[k][0]))
+			classB := classify(byte(compB[k][0]))
+			if classA < classB {
+				return true
+			} else if classA > classB {
+				return false
+			}
+			if classA == numeric && classB == numeric {
+				numA, err := strconv.ParseInt(compA[k], 10, 64)
+				expectSuccess(err, "BUG: numeric version component is not parseable: %v")
+				numB, err := strconv.ParseInt(compB[k], 10, 64)
+				expectSuccess(err, "BUG: numeric version component is not parseable: %v")
+				if numA < numB {
+					return true
+				} else if numA > numB {
+					return false
+				}
+				continue
+			}
+			if classA == alpha && classB == alpha {
+				// FIXME need to give priority to predefined qualifiers (alpha, beta, etc.)
+				cmp := strings.Compare(compA[k], compB[k])
+				if cmp < 0 {
+					return true
+				} else if cmp > 0 {
+					return false
+				}
+				continue
+			}
+			panic("BUG: should not reach this! There seems to be a third class of version components?")
+		}
+		return true
+	})
+	sorted := make([]string, 0)
+	for _, v := range components {
+		sorted = append(sorted, v.version)
+	}
+	os.Stderr.WriteString(fmt.Sprintf("%+v\n", sorted))
+	return sorted
+}
 
 // 1. component:
 //    all-alpha / all-numeric
@@ -75,29 +154,62 @@ func expectFingerprintSet(fpr []byte) {
 // 3. qualifiers: strings are checked for well-known qualifiers and the
 //    qualifier ordering is used for version ordering. Well-known qualifiers
 //    (case insensitive) are:
-//    - alpha or a
-//    - beta or b
-//    - milestone or m
-//    - rc or cr
-//    - snapshot
-//    - (the empty string) or ga or final
-//    - sp
+//    - "alpha" or "a"
+//    - "beta" or "b"
+//    - "milestone" or "m"
+//    - "rc" or "cr"
+//    - "snapshot"
+//    - (the empty string) or "ga" or "final"
+//    - "sp"
 //    Unknown qualifiers are considered after known qualifiers, with lexical
 //    order (always case insensitive),
-// 4. a dash usually precedes a qualifier, and is always less important than
+// 4. (a dash usually precedes a qualifier, and) is always less important than
 //    something preceded with a dot.
+func componentize(version string) component {
+	components := []string{}
+	cmp := ""
+	for _, c := range []byte(version) {
+		// FIXME added '_' as separator, not sure if this is correct but found in artifact-version list.
+		if c == '.' || c == '-' || c == '_' || (len(cmp) > 0 && classify(cmp[len(cmp)-1]) != classify(c)) {
+			// in case of explicit separators '.' and '-', and implicit separation
+			expect(len(cmp) > 0, "BUG? expected separator to separate either an alpha or numeric component.")
+			components = append(components, strings.ToLower(cmp))
+			cmp = ""
+			continue
+		}
+		cmp += string(c)
+	}
+	if len(cmp) > 0 {
+		components = append(components, strings.ToLower(cmp))
+	}
+	return component{version: version, components: components}
+}
 
-// func tokenize(version string) []string {
-// 	tokens := []string{}
-// 	token := "" // alpha chars, numeric chars
-// 	for _, c := range version {
+type component struct {
+	version    string
+	components []string
+}
 
-// 	}
-// 	return tokens
-// }
+type tokenclass uint
+
+const (
+	_ tokenclass = iota
+	alpha
+	numeric
+)
+
+func classify(b byte) tokenclass {
+	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {
+		return alpha
+	}
+	if b >= '0' && b <= '9' {
+		return numeric
+	}
+	panic(fmt.Sprintf("BUG: Unknown token type: %v", b))
+}
 
 func allArtifactsVersionsSame(group map[string]map[string][20]byte) []byte {
-	expect(len(group) > 0, "Invalid input: no versions in artifact map.")
+	expect(len(group) > 0, "Invalid input: no artifacts in group map.")
 	var previous = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	for _, artifact := range group {
 		for _, fpr := range artifact {
