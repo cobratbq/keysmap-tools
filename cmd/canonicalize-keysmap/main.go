@@ -35,6 +35,7 @@ func main() {
 			}
 		}
 	}
+	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
 func writeKeysMapLine(groupID, artifactID, version string, fingerprint []byte) {
@@ -99,7 +100,37 @@ func orderVersions(versions []string) []string {
 	for _, v := range versions {
 		components = append(components, componentize(v))
 	}
-	sort.Slice(components, func(i, j int) bool {
+	sort.Slice(components, versionsorter(components))
+	sorted := make([]string, 0)
+	for _, v := range components {
+		sorted = append(sorted, v.version)
+	}
+	return sorted
+}
+
+// versionsorter produces a function that sorts according to Maven's rules on
+// version ordering:
+//
+// 1. component:
+//    all-alpha / all-numeric
+// 2. separators:
+//    '-' / '.' / alpha-numeric-transition
+// 3. qualifiers: strings are checked for well-known qualifiers and the
+//    qualifier ordering is used for version ordering. Well-known qualifiers
+//    (case insensitive) are:
+//    - "alpha" or "a"
+//    - "beta" or "b"
+//    - "milestone" or "m"
+//    - "rc" or "cr"
+//    - "snapshot"
+//    - (the empty string) or "ga" or "final"
+//    - "sp"
+//    Unknown qualifiers are considered after known qualifiers, with lexical
+//    order (always case insensitive),
+// 4. (a dash usually precedes a qualifier, and) is always less important than
+//    something preceded with a dot.
+func versionsorter(components []component) func(i, j int) bool {
+	return func(i, j int) bool {
 		compA := components[i].components[:]
 		compB := components[j].components[:]
 		for len(compA) < len(compB) {
@@ -141,37 +172,14 @@ func orderVersions(versions []string) []string {
 			panic("BUG: should not reach this! There seems to be a third class of version components?")
 		}
 		return true
-	})
-	sorted := make([]string, 0)
-	for _, v := range components {
-		sorted = append(sorted, v.version)
 	}
-	return sorted
 }
 
-// 1. component:
-//    all-alpha / all-numeric
-// 2. separators:
-//    '-' / '.' / alpha-numeric-transition
-// 3. qualifiers: strings are checked for well-known qualifiers and the
-//    qualifier ordering is used for version ordering. Well-known qualifiers
-//    (case insensitive) are:
-//    - "alpha" or "a"
-//    - "beta" or "b"
-//    - "milestone" or "m"
-//    - "rc" or "cr"
-//    - "snapshot"
-//    - (the empty string) or "ga" or "final"
-//    - "sp"
-//    Unknown qualifiers are considered after known qualifiers, with lexical
-//    order (always case insensitive),
-// 4. (a dash usually precedes a qualifier, and) is always less important than
-//    something preceded with a dot.
 func componentize(version string) component {
 	components := []string{}
 	cmp := ""
 	for _, c := range []byte(version) {
-		// FIXME added '_' as separator, not sure if this is correct but found in artifact-version list.
+		// FIXME added '_' as separator, not sure if this is correct but found in artifact-version list. (or treat as alpha?)
 		if c == '.' || c == '-' || c == '_' {
 			// in case of explicit separators '.' and '-'
 			expect(len(cmp) > 0, "BUG? expected separator to separate either an alpha or numeric component.")
@@ -226,20 +234,6 @@ func allArtifactsVersionsSame(group map[string]map[string][20]byte) []byte {
 			if !bytes.Equal(previous[:], fpr[:]) {
 				return nil
 			}
-		}
-	}
-	return previous[:]
-}
-
-func allFingerprintsSame(artifact map[string][20]byte) []byte {
-	expect(len(artifact) > 0, "Invalid input: no versions in artifact map.")
-	var previous = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	for _, fpr := range artifact {
-		if bytes.Equal(previous[:], fingerprintUnset) {
-			copy(previous[:], fpr[:])
-		}
-		if !bytes.Equal(previous[:], fpr[:]) {
-			return nil
 		}
 	}
 	return previous[:]
