@@ -17,6 +17,7 @@ import (
 var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9][0-9a-zA-Z\.\-_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
 
 func main() {
+	// FIXME order is not enforced, using `sort` is not ideal. Better to do sorting in the program itself.
 	// groupID -> artifactID -> version -> key fingerprint
 	keysmap := readKeysMap(bufio.NewReader(os.Stdin))
 
@@ -64,9 +65,8 @@ func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, [
 	ranges := make(map[string][20]byte, 1)
 	rangeorder := make([]string, 0, 1)
 	rangeStart := 0
-	fingerprint := artifact[versions[0]]
 	for i := 1; i < len(versions); i++ {
-		if artifact[versions[i]] == fingerprint {
+		if artifact[versions[i]] == artifact[versions[rangeStart]] {
 			continue
 		}
 		if rangeStart == i-1 {
@@ -81,7 +81,6 @@ func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, [
 			rangeorder = append(rangeorder, rangekey)
 		}
 		rangeStart = i
-		fingerprint = artifact[versions[rangeStart]]
 	}
 	if rangeStart == 0 {
 		rangekey := "*"
