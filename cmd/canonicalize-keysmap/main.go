@@ -252,8 +252,8 @@ func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID st
 func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string, []string) {
 	// groupID:artifactID -> version -> fingerprint
 	keysmap := make(map[string]map[string][20]byte, 0)
-	groupmap := make(map[string]struct{}, 0)
-	artifactmap := make(map[string]struct{}, 0)
+	groupset := make(map[string]struct{}, 0)
+	artifactset := make(map[string]struct{}, 0)
 	for {
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
@@ -269,9 +269,9 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 			os.Stderr.WriteString("WARNING: Line does not match format: " + line + "\n")
 			continue
 		}
-		groupmap[matches[1]] = struct{}{}
+		groupset[matches[1]] = struct{}{}
 		key := matches[1] + ":" + matches[2]
-		artifactmap[key] = struct{}{}
+		artifactset[key] = struct{}{}
 		artifact := keysmap[key]
 		if artifact == nil {
 			artifact = make(map[string][20]byte, 1)
@@ -287,13 +287,13 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		artifact[matches[3]] = v
 	}
 
-	groups := make([]string, 0, len(groupmap))
-	for k := range groupmap {
+	groups := make([]string, 0, len(groupset))
+	for k := range groupset {
 		groups = append(groups, k)
 	}
 	sort.Strings(groups)
-	identifiers := make([]string, 0, len(artifactmap))
-	for key := range artifactmap {
+	identifiers := make([]string, 0, len(artifactset))
+	for key := range artifactset {
 		identifiers = append(identifiers, key)
 	}
 	sort.Strings(identifiers)
