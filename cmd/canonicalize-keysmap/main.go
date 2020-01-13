@@ -18,7 +18,7 @@ var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-
 
 func main() {
 	// "<groupID>:<artifactID>" -> version -> key fingerprint
-	keysmap, groups := readKeysMap(bufio.NewReader(os.Stdin))
+	keysmap, groups, identifiers := readKeysMap(bufio.NewReader(os.Stdin))
 
 	for _, groupID := range groups {
 		groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
@@ -27,7 +27,8 @@ func main() {
 			writeKeysMapLine(groupID, groupFingerprint)
 			continue
 		}
-		for identifier, artifact := range keysmap {
+		for _, identifier := range identifiers {
+			artifact := keysmap[identifier]
 			if !strings.HasPrefix(identifier, groupID+":") {
 				continue
 			}
@@ -248,10 +249,11 @@ func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID st
 	return previous[:]
 }
 
-func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string) {
+func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string, []string) {
 	// groupID:artifactID -> version -> fingerprint
 	keysmap := make(map[string]map[string][20]byte, 0)
 	groupmap := make(map[string]struct{}, 0)
+	artifactmap := make(map[string]struct{}, 0)
 	for {
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
@@ -269,6 +271,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		}
 		groupmap[matches[1]] = struct{}{}
 		key := matches[1] + ":" + matches[2]
+		artifactmap[key] = struct{}{}
 		artifact := keysmap[key]
 		if artifact == nil {
 			artifact = make(map[string][20]byte, 1)
@@ -289,7 +292,12 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		groups = append(groups, k)
 	}
 	sort.Strings(groups)
-	return keysmap, groups
+	identifiers := make([]string, 0, len(artifactmap))
+	for key := range artifactmap {
+		identifiers = append(identifiers, key)
+	}
+	sort.Strings(identifiers)
+	return keysmap, groups, identifiers
 }
 
 func expectSuccess(err error, msg string) {
