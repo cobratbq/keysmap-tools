@@ -17,33 +17,35 @@ import (
 var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9][0-9a-zA-Z\.\-_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
 
 func main() {
-	// FIXME order is not enforced, using `sort` is not ideal. Better to do sorting in the program itself.
-	// groupID -> artifactID -> version -> key fingerprint
-	keysmap := readKeysMap(bufio.NewReader(os.Stdin))
+	// "<groupID>:<artifactID>" -> version -> key fingerprint
+	keysmap, groups := readKeysMap(bufio.NewReader(os.Stdin))
 
-	for groupID, group := range keysmap {
-		groupFingerprint := allArtifactsVersionsSame(group)
-		expectFingerprintSet(groupFingerprint)
-		if groupFingerprint != nil {
-			writeKeysMapLine(groupID, "*", "*", groupFingerprint)
-			continue
-		}
-		for artifactID, artifact := range group {
+	for _, groupID := range groups {
+		// groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
+		// expectFingerprintSet(groupFingerprint)
+		// if groupFingerprint != nil {
+		// 	writeKeysMapLine(groupID+":*", "*", groupFingerprint)
+		// 	continue
+		// }
+		for identifier, artifact := range keysmap {
+			if !strings.HasPrefix(identifier, groupID+":") {
+				continue
+			}
 			ranges, order := artifactVersionRanges(artifact)
 			for _, versionrange := range order {
 				fingerprint := ranges[versionrange]
-				writeKeysMapLine(groupID, artifactID, versionrange, fingerprint[:])
+				writeKeysMapLine(identifier, versionrange, fingerprint[:])
 			}
 		}
 	}
 	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
-func writeKeysMapLine(groupID, artifactID, version string, fingerprint []byte) {
+func writeKeysMapLine(groupIDartifactID, version string, fingerprint []byte) {
 	if bytes.Equal(fingerprint, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}) {
-		fmt.Printf("%s:%s:%s =\n", groupID, artifactID, version)
+		fmt.Printf("%s:%s =\n", groupIDartifactID, version)
 	} else {
-		fmt.Printf("%s:%s:%s = 0x%040X\n", groupID, artifactID, version, fingerprint)
+		fmt.Printf("%s:%s = 0x%040X\n", groupIDartifactID, version, fingerprint)
 	}
 }
 
@@ -239,9 +241,10 @@ func allArtifactsVersionsSame(group map[string]map[string][20]byte) []byte {
 	return previous[:]
 }
 
-func readKeysMap(reader *bufio.Reader) map[string]map[string]map[string][20]byte {
-	// groupID -> artifactID -> version -> fingerprint
-	keysmap := make(map[string]map[string]map[string][20]byte, 0)
+func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string) {
+	// groupID:artifactID -> version -> fingerprint
+	keysmap := make(map[string]map[string][20]byte, 0)
+	groupmap := make(map[string]struct{}, 0)
 	for {
 		line, err := reader.ReadString('\n')
 		if err == io.EOF {
@@ -250,37 +253,36 @@ func readKeysMap(reader *bufio.Reader) map[string]map[string]map[string][20]byte
 		expectSuccess(err, "Unexpected failure reading line: %v")
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
-			os.Stderr.WriteString("Skipping empty line ...\n")
 			continue
 		}
 		matches := keysmapLineFormat.FindStringSubmatch(line)
 		if matches == nil {
-			os.Stderr.WriteString("WARNING: Line did not match: " + line + "\n")
+			os.Stderr.WriteString("WARNING: Line does not match format: " + line + "\n")
 			continue
 		}
-		groupID := matches[1]
-		group := keysmap[groupID]
-		if group == nil {
-			group = make(map[string]map[string][20]byte, 1)
-			keysmap[groupID] = group
-		}
-		artifactID := matches[2]
-		version := matches[3]
-		artifact := group[artifactID]
+		groupmap[matches[1]] = struct{}{}
+		key := matches[1] + ":" + matches[2]
+		artifact := keysmap[key]
 		if artifact == nil {
 			artifact = make(map[string][20]byte, 1)
-			group[artifactID] = artifact
+			keysmap[key] = artifact
 		}
 		var v [20]byte
 		n, err := hex.Decode(v[:], []byte(matches[4]))
 		expectSuccess(err, "Failed to decode key fingerprint: %v")
 		if n != 0 && n != 20 {
-			os.Stderr.WriteString(fmt.Sprintf("Incorrect length: %d\n", n))
+			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for key fingerprint: %d\n", n))
 			continue
 		}
-		artifact[version] = v
+		artifact[matches[3]] = v
 	}
-	return keysmap
+
+	groups := make([]string, 0, len(groupmap))
+	for k := range groupmap {
+		groups = append(groups, k)
+	}
+	sort.Strings(groups)
+	return keysmap, groups
 }
 
 func expectSuccess(err error, msg string) {
