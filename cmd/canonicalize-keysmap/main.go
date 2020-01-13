@@ -21,12 +21,12 @@ func main() {
 	keysmap, groups := readKeysMap(bufio.NewReader(os.Stdin))
 
 	for _, groupID := range groups {
-		// groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
-		// expectFingerprintSet(groupFingerprint)
-		// if groupFingerprint != nil {
-		// 	writeKeysMapLine(groupID+":*", "*", groupFingerprint)
-		// 	continue
-		// }
+		groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
+		expectFingerprintSet(groupFingerprint)
+		if groupFingerprint != nil {
+			writeKeysMapLine(groupID, groupFingerprint)
+			continue
+		}
 		for identifier, artifact := range keysmap {
 			if !strings.HasPrefix(identifier, groupID+":") {
 				continue
@@ -34,18 +34,22 @@ func main() {
 			ranges, order := artifactVersionRanges(artifact)
 			for _, versionrange := range order {
 				fingerprint := ranges[versionrange]
-				writeKeysMapLine(identifier, versionrange, fingerprint[:])
+				key := identifier
+				if versionrange != "" {
+					key += ":" + versionrange
+				}
+				writeKeysMapLine(key, fingerprint[:])
 			}
 		}
 	}
 	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
-func writeKeysMapLine(groupIDartifactID, version string, fingerprint []byte) {
+func writeKeysMapLine(identifier string, fingerprint []byte) {
 	if bytes.Equal(fingerprint, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}) {
-		fmt.Printf("%s:%s =\n", groupIDartifactID, version)
+		fmt.Printf("%s =\n", identifier)
 	} else {
-		fmt.Printf("%s:%s = 0x%040X\n", groupIDartifactID, version, fingerprint)
+		fmt.Printf("%s = 0x%040X\n", identifier, fingerprint)
 	}
 }
 
@@ -85,7 +89,7 @@ func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, [
 		rangeStart = i
 	}
 	if rangeStart == 0 {
-		rangekey := "*"
+		rangekey := ""
 		ranges[rangekey] = artifact[versions[rangeStart]]
 		rangeorder = append(rangeorder, rangekey)
 	} else if rangeStart < len(versions) {
@@ -225,11 +229,14 @@ func classify(b byte) tokenclass {
 	panic(fmt.Sprintf("BUG: Unknown token type: %v", b))
 }
 
-func allArtifactsVersionsSame(group map[string]map[string][20]byte) []byte {
-	expect(len(group) > 0, "Invalid input: no artifacts in group map.")
+func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID string) []byte {
+	expect(len(keysmap) > 0, "Empty keysmap.")
 	var previous = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-	for _, artifact := range group {
-		for _, fpr := range artifact {
+	for key, version := range keysmap {
+		if !strings.HasPrefix(key, groupID+":") {
+			continue
+		}
+		for _, fpr := range version {
 			if bytes.Equal(previous[:], fingerprintUnset) {
 				copy(previous[:], fpr[:])
 			}
