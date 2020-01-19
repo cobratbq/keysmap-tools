@@ -16,9 +16,8 @@ func main() {
 	block, err := armor.Decode(os.Stdin)
 	if err == io.EOF {
 		return
-	} else if err != nil {
-		panic("Unexpected error: " + err.Error())
 	}
+	expectSuccess(err)
 	pkt, err := packet.NewReader(block.Body).Next()
 	expectSuccess(err)
 	switch sig := pkt.(type) {
