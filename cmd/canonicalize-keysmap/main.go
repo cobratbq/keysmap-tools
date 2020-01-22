@@ -141,44 +141,81 @@ func versionsorter(components []component) func(i, j int) bool {
 		compA := components[i].components[:]
 		compB := components[j].components[:]
 		for len(compA) < len(compB) {
-			compA = append(compA, "0")
+			compA = append(compA, "")
 		}
 		for len(compA) > len(compB) {
-			compB = append(compB, "0")
+			compB = append(compB, "")
 		}
 		for k := 0; k < len(compA) || k < len(compB); k++ {
-			classA := classify(byte(compA[k][0]))
-			classB := classify(byte(compB[k][0]))
-			if classA < classB {
+			valueA := valuate(compA[k])
+			valueB := valuate(compB[k])
+			if valueA < valueB {
 				return true
-			} else if classA > classB {
+			}
+			if valueA > valueB {
 				return false
 			}
-			if classA == numeric && classB == numeric {
-				numA, err := strconv.ParseInt(compA[k], 10, 64)
-				expectSuccess(err, "BUG: numeric version component is not parseable: %v")
-				numB, err := strconv.ParseInt(compB[k], 10, 64)
-				expectSuccess(err, "BUG: numeric version component is not parseable: %v")
-				if numA < numB {
-					return true
-				} else if numA > numB {
-					return false
-				}
-				continue
+			if valueA == extraordinaryLabelValue {
+				return strings.Compare(compA[k], compB[k]) <= 0
 			}
-			if classA == alpha && classB == alpha {
-				// FIXME need to give priority to predefined qualifiers (alpha, beta, etc.)
-				cmp := strings.Compare(compA[k], compB[k])
-				if cmp < 0 {
-					return true
-				} else if cmp > 0 {
-					return false
-				}
-				continue
-			}
-			panic("BUG: should not reach this! There seems to be a third class of version components?")
+			continue
 		}
 		return true
+	}
+}
+
+const extraordinaryLabelValue = 2
+
+// valuate determines a symbolic value for the version component for use in mixed numeric/alpha comparison.
+//
+// version ordering:
+// (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html)
+//
+// [..]
+// 3. qualifiers: strings are checked for well-known qualifiers and the
+//    qualifier ordering is used for version ordering. Well-known qualifiers
+//    (case insensitive) are:
+//    - "alpha" or "a"
+//    - "beta" or "b"
+//    - "milestone" or "m"
+//    - "rc" or "cr"
+//    - "snapshot"
+//    - (the empty string) or "ga" or "final" [or "release", addition Danny]
+//    - "sp"
+//    Unknown qualifiers are considered after known qualifiers, with lexical
+//    order (always case insensitive),
+// [..]
+func valuate(v string) int64 {
+	if len(v) == 0 {
+		return 0
+	}
+	if classify([]byte(v)) == numeric {
+		num, err := strconv.ParseInt(v, 10, 64)
+		expectSuccess(err, "BUG: numeric version component is not parseable: %v")
+		if num == 0 {
+			return 0
+		}
+		// offset numeric value, such that numerics "> 0" are always preferred
+		// over alpha components.
+		return num + extraordinaryLabelValue
+	}
+	switch strings.ToLower(v) {
+	case "a", "alpha":
+		return -5
+	case "b", "beta":
+		return -4
+	case "m", "milestone":
+		return -3
+	case "rc", "cr":
+		return -2
+	case "snapshot":
+		return -1
+	case "", "ga", "final", "release":
+		return 0
+	case "sp":
+		return 1
+	default:
+		return extraordinaryLabelValue
 	}
 }
 
@@ -194,7 +231,7 @@ func componentize(version string) component {
 			cmp = ""
 			continue
 		}
-		if len(cmp) > 0 && classify(cmp[len(cmp)-1]) != classify(c) {
+		if len(cmp) > 0 && classify([]byte(cmp)) != classify([]byte{c}) {
 			// in case of implicit separation
 			components = append(components, strings.ToLower(cmp))
 			cmp = ""
@@ -220,12 +257,16 @@ const (
 	numeric
 )
 
-func classify(b byte) tokenclass {
-	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {
-		return alpha
+func classify(component []byte) tokenclass {
+	if len(component) == 0 {
+		return numeric
 	}
+	b := component[len(component)-1]
 	if b >= '0' && b <= '9' {
 		return numeric
+	}
+	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {
+		return alpha
 	}
 	panic(fmt.Sprintf("BUG: Unknown token type: %v", b))
 }
