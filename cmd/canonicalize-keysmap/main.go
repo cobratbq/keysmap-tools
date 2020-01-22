@@ -185,6 +185,7 @@ const extraordinaryLabelValue = 2
 //    Unknown qualifiers are considered after known qualifiers, with lexical
 //    order (always case insensitive),
 // [..]
+// FIXME is there any consequence for not paying special attention to distinctio between '.' and '-'?
 func valuate(v string) int64 {
 	if len(v) == 0 {
 		return 0
