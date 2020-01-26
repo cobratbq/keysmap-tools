@@ -5,3 +5,4 @@
 /extract-fingerprint
 /sha256sum
 /canonicalize-keysmap
+/keysmap-tools.code-workspace

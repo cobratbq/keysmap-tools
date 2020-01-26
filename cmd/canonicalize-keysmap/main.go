@@ -11,12 +11,19 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
+
+	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/std/errors"
+	sort_ "github.com/cobratbq/goutils/std/sort"
+	"github.com/cobratbq/goutils/std/strconv"
 )
 
 // TODO investigate what the exact rules are for groupID, artifactID and version strings.
 var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9][0-9a-zA-Z\.\-_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
+
+var fingerprintUnset = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+var fingerprintZero = [20]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 func main() {
 	// "<groupID>:<artifactID>" -> version -> key fingerprint
@@ -24,7 +31,8 @@ func main() {
 
 	for _, groupID := range groups {
 		groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
-		expectFingerprintSet(groupFingerprint)
+		builtin.Require(!bytes.Equal(groupFingerprint, fingerprintUnset[:]),
+			"BUG: fingerprint should not have 'fingerprintUnset' sentinel value!")
 		if groupFingerprint != nil {
 			writeKeysMapLine(groupID, groupFingerprint)
 			continue
@@ -49,18 +57,10 @@ func main() {
 }
 
 func writeKeysMapLine(identifier string, fingerprint []byte) {
-	if bytes.Equal(fingerprint, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}) {
+	if bytes.Equal(fingerprint, fingerprintZero[:]) {
 		fmt.Printf("%s =\n", identifier)
 	} else {
 		fmt.Printf("%s = 0x%040X\n", identifier, fingerprint)
-	}
-}
-
-var fingerprintUnset = []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-
-func expectFingerprintSet(fpr []byte) {
-	if bytes.Equal(fpr, fingerprintUnset) {
-		panic("BUG: fingerprint should not be 'fingerprintUnset' sentinel value!")
 	}
 }
 
@@ -116,6 +116,12 @@ func orderVersions(versions []string) []string {
 	return sorted
 }
 
+// extraordinaryLabelValue offsets any numeric version > 2 with +2, such that
+// we can represent an order if alpha and numeric components are mixed.
+// Offsetting +2 allows us to fit in alpha components "sp" and any undefined
+// labels, while still respecting priority of numeric versions.
+const extraordinaryLabelOffset = 2
+
 // versionsorter produces a function that sorts according to Maven's rules on
 // version ordering:
 // (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html)
@@ -157,7 +163,7 @@ func versionsorter(components []component) func(i, j int) bool {
 			if valueA > valueB {
 				return false
 			}
-			if valueA == extraordinaryLabelValue {
+			if valueA == extraordinaryLabelOffset {
 				return strings.Compare(compA[k], compB[k]) <= 0
 			}
 			continue
@@ -165,8 +171,6 @@ func versionsorter(components []component) func(i, j int) bool {
 		return true
 	}
 }
-
-const extraordinaryLabelValue = 2
 
 // valuate determines a symbolic value for the version component for use in mixed numeric/alpha comparison.
 //
@@ -193,14 +197,13 @@ func valuate(v string) int64 {
 		return 0
 	}
 	if classify([]byte(v)) == numeric {
-		num, err := strconv.ParseInt(v, 10, 64)
-		expectSuccess(err, "BUG: numeric version component is not parseable: %v")
+		num := strconv.MustParseInt(v, 10, 64)
 		if num == 0 {
 			return 0
 		}
 		// offset numeric value, such that numerics "> 0" are always preferred
 		// over alpha components.
-		return num + extraordinaryLabelValue
+		return num + extraordinaryLabelOffset
 	}
 	switch strings.ToLower(v) {
 	case "a", "alpha":
@@ -218,7 +221,7 @@ func valuate(v string) int64 {
 	case "sp":
 		return 1
 	default:
-		return extraordinaryLabelValue
+		return extraordinaryLabelOffset
 	}
 }
 
@@ -229,7 +232,8 @@ func componentize(version string) component {
 		// FIXME added '_' as separator, not sure if this is correct but found in artifact-version list. (or treat as alpha?)
 		if c == '.' || c == '-' || c == '_' {
 			// in case of explicit separators '.' and '-'
-			expect(len(cmp) > 0, "BUG? expected separator to separate either an alpha or numeric component.")
+			builtin.Require(len(cmp) > 0,
+				"BUG? expected separator to separate either an alpha or numeric component.")
 			components = append(components, strings.ToLower(cmp))
 			cmp = ""
 			continue
@@ -275,14 +279,14 @@ func classify(component []byte) tokenclass {
 }
 
 func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID string) []byte {
-	expect(len(keysmap) > 0, "Empty keysmap.")
+	builtin.Require(len(keysmap) > 0, "Empty keysmap.")
 	var previous = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 	for key, version := range keysmap {
 		if !strings.HasPrefix(key, groupID+":") {
 			continue
 		}
 		for _, fpr := range version {
-			if bytes.Equal(previous[:], fingerprintUnset) {
+			if bytes.Equal(previous[:], fingerprintUnset[:]) {
 				copy(previous[:], fpr[:])
 			}
 			if !bytes.Equal(previous[:], fpr[:]) {
@@ -303,7 +307,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		if err == io.EOF {
 			break
 		}
-		expectSuccess(err, "Unexpected failure reading line: %v")
+		errors.RequireSuccess(err, "Unexpected failure reading line: %v")
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -323,7 +327,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		}
 		var v [20]byte
 		n, err := hex.Decode(v[:], []byte(matches[4]))
-		expectSuccess(err, "Failed to decode key fingerprint: %v")
+		errors.RequireSuccess(err, "Failed to decode key fingerprint: %v")
 		if n != 0 && n != 20 {
 			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for key fingerprint: %d\n", n))
 			continue
@@ -331,25 +335,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		artifact[matches[3]] = v
 	}
 
-	groups := make([]string, 0, len(groupset))
-	for k := range groupset {
-		groups = append(groups, k)
-	}
-	sort.Strings(groups)
-	identifiers := make([]string, 0, len(artifactset))
-	for key := range artifactset {
-		identifiers = append(identifiers, key)
-	}
-	sort.Strings(identifiers)
+	groups := sort_.StringSet(groupset)
+	identifiers := sort_.StringSet(artifactset)
 	return keysmap, groups, identifiers
-}
-
-func expectSuccess(err error, msg string) {
-	expect(err == nil, fmt.Sprintf(msg, err))
-}
-
-func expect(result bool, msg string) {
-	if !result {
-		panic(msg)
-	}
 }

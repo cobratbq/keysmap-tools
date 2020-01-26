@@ -6,23 +6,21 @@ import (
 	"encoding/xml"
 	"flag"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/cobratbq/goutils/std/errors"
+	io_ "github.com/cobratbq/goutils/std/io"
 )
 
 func main() {
 	destination := flag.String("d", "artifact-signatures", "The destination location for downloaded artifact signatures.")
 	flag.Parse()
 
-	data, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		panic(err.Error())
-	}
-
+	data := io_.MustReadAll(os.Stdin)
 	var metadata metadata
 	xml.Unmarshal(data, &metadata)
 	for _, version := range metadata.Versions {
@@ -33,7 +31,7 @@ func main() {
 			if exiterr, ok := err.(*exec.ExitError); ok && exiterr.ProcessState.ExitCode() == 22 {
 				// no need to panic if document is simply unavailable (404)
 				f, err := os.Create(destinationPath)
-				expectSuccess(err, "Failed to create empty file "+destinationPath)
+				errors.RequireSuccess(err, "Failed to create empty file "+destinationPath+": %+v")
 				f.Close()
 				continue
 			}
@@ -79,10 +77,4 @@ func cmd(command ...string) error {
 	wg.Wait()
 	os.Stderr.Write([]byte{'\n'})
 	return err
-}
-
-func expectSuccess(err error, msg string) {
-	if err != nil {
-		panic(msg + ": " + err.Error())
-	}
 }

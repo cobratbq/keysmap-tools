@@ -1,3 +1,13 @@
+github.com/cobratbq/goutils v0.0.0-20200125235032-b4458395a6f3 h1:p8+YF1U6NprMFj2OIl8SC6NViO8sKzwlMtsxtBOXQA4=
+github.com/cobratbq/goutils v0.0.0-20200125235032-b4458395a6f3/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20200126161147-83ba0ed55665 h1:KV+cL67sbChx3PDqLl5CXfqcCMVz6T1fjxaiQKWHgL8=
+github.com/cobratbq/goutils v0.0.0-20200126161147-83ba0ed55665/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20200126162202-6131e377e578 h1:vPCaqKLPPzvmFTnL25v7pTNsnxtMNzLl66ShxJl7wFw=
+github.com/cobratbq/goutils v0.0.0-20200126162202-6131e377e578/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20200126171544-7efcae8b9f79 h1:TBD8+r0+p6E4B670WtZwOQk4SsTPjYHPYVoXA4DcdcE=
+github.com/cobratbq/goutils v0.0.0-20200126171544-7efcae8b9f79/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20200126172621-95b2514372c0 h1:k6Wp+HXkaez0QJrJv1Ryd5q9UFJrT3Z4Qoym7B9k5R0=
+github.com/cobratbq/goutils v0.0.0-20200126172621-95b2514372c0/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 h1:sKJQZMuxjOAR/Uo2LBfU90onWEf1dF4C+0hPJCc9Mpc=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=

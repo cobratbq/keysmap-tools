@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/cobratbq/goutils/std/errors"
 )
 
 const repositoryBaseURL = "https://repo1.maven.org/maven2/"
@@ -45,7 +47,7 @@ func main() {
 		url := generateMetadataURL(groupID, artifactID)
 		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
 		err := cmd("curl", "-f", "-z", destFile, "-o", destFile, url)
-		expectSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID)
+		errors.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
 	}
 	if err != io.EOF {
 		panic(err.Error())
@@ -73,10 +75,4 @@ func cmd(command ...string) error {
 	wg.Wait()
 	os.Stderr.Write([]byte{'\n'})
 	return err
-}
-
-func expectSuccess(err error, msg string) {
-	if err != nil {
-		panic(msg + ": " + err.Error())
-	}
 }
