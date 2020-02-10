@@ -4,7 +4,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -31,9 +30,7 @@ func main() {
 
 	for _, groupID := range groups {
 		groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
-		builtin.Require(!bytes.Equal(groupFingerprint, fingerprintUnset[:]),
-			"BUG: fingerprint should not have 'fingerprintUnset' sentinel value!")
-		if groupFingerprint != nil {
+		if groupFingerprint != fingerprintUnset {
 			writeKeysMapLine(groupID, groupFingerprint)
 			continue
 		}
@@ -49,15 +46,15 @@ func main() {
 				if versionrange != "" {
 					key += ":" + versionrange
 				}
-				writeKeysMapLine(key, fingerprint[:])
+				writeKeysMapLine(key, fingerprint)
 			}
 		}
 	}
 	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
-func writeKeysMapLine(identifier string, fingerprint []byte) {
-	if bytes.Equal(fingerprint, fingerprintZero[:]) {
+func writeKeysMapLine(identifier string, fingerprint [20]byte) {
+	if fingerprint == fingerprintZero {
 		fmt.Printf("%s =\n", identifier)
 	} else {
 		fmt.Printf("%s = 0x%040X\n", identifier, fingerprint)
@@ -278,23 +275,23 @@ func classify(component []byte) tokenclass {
 	panic(fmt.Sprintf("BUG: Unknown token type: %v", b))
 }
 
-func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID string) []byte {
+func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID string) [20]byte {
 	builtin.Require(len(keysmap) > 0, "Empty keysmap.")
-	var previous = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	var previous = fingerprintUnset
 	for key, version := range keysmap {
 		if !strings.HasPrefix(key, groupID+":") {
 			continue
 		}
 		for _, fpr := range version {
-			if bytes.Equal(previous[:], fingerprintUnset[:]) {
+			if previous == fingerprintUnset {
 				copy(previous[:], fpr[:])
 			}
-			if !bytes.Equal(previous[:], fpr[:]) {
-				return nil
+			if previous != fpr {
+				return fingerprintUnset
 			}
 		}
 	}
-	return previous[:]
+	return previous
 }
 
 func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string, []string) {
