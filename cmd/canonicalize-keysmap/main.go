@@ -127,20 +127,7 @@ const extraordinaryLabelOffset = 2
 //    all-alpha / all-numeric
 // 2. separators:
 //    '-' / '.' / alpha-numeric-transition
-// 3. qualifiers: strings are checked for well-known qualifiers and the
-//    qualifier ordering is used for version ordering. Well-known qualifiers
-//    (case insensitive) are:
-//    - "alpha" or "a"
-//    - "beta" or "b"
-//    - "milestone" or "m"
-//    - "rc" or "cr"
-//    - "snapshot"
-//    - (the empty string) or "ga" or "final"
-//    - "sp"
-//    Unknown qualifiers are considered after known qualifiers, with lexical
-//    order (always case insensitive),
-// 4. (a dash usually precedes a qualifier, and) is always less important than
-//    something preceded with a dot.
+// [..]
 func versionsorter(components []component) func(i, j int) bool {
 	return func(i, j int) bool {
 		compA := components[i].components[:]
@@ -187,7 +174,8 @@ func versionsorter(components []component) func(i, j int) bool {
 //    - "sp"
 //    Unknown qualifiers are considered after known qualifiers, with lexical
 //    order (always case insensitive),
-// [..]
+// 4. (a dash usually precedes a qualifier, and) is always less important than
+//    something preceded with a dot.
 // FIXME is there any consequence for not paying special attention to distinctio between '.' and '-'?
 func valuate(v string) int64 {
 	if len(v) == 0 {
