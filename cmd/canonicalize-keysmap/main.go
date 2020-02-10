@@ -19,7 +19,7 @@ import (
 )
 
 // TODO investigate what the exact rules are for groupID, artifactID and version strings.
-var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
+var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\._]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
 
 var fingerprintUnset = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 var fingerprintZero = [20]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
