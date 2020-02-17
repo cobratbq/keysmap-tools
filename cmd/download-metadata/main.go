@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cobratbq/goutils/std/errors"
+	"github.com/cobratbq/goutils/std/builtin"
 )
 
 const repositoryBaseURL = "https://repo1.maven.org/maven2/"
@@ -47,7 +47,7 @@ func main() {
 		url := generateMetadataURL(groupID, artifactID)
 		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
 		err := cmd("curl", "-f", "-z", destFile, "-o", destFile, url)
-		errors.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
+		builtin.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
 	}
 	if err != io.EOF {
 		panic(err.Error())

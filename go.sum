@@ -8,6 +8,8 @@ github.com/cobratbq/goutils v0.0.0-20200126171544-7efcae8b9f79 h1:TBD8+r0+p6E4B6
 github.com/cobratbq/goutils v0.0.0-20200126171544-7efcae8b9f79/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
 github.com/cobratbq/goutils v0.0.0-20200126172621-95b2514372c0 h1:k6Wp+HXkaez0QJrJv1Ryd5q9UFJrT3Z4Qoym7B9k5R0=
 github.com/cobratbq/goutils v0.0.0-20200126172621-95b2514372c0/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20200205190621-3a913e4d7931 h1:ukSbiTGwNmEOLQXL03j2xuM8PsTJF2vKCa9Qsy8Sz2k=
+github.com/cobratbq/goutils v0.0.0-20200205190621-3a913e4d7931/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 h1:sKJQZMuxjOAR/Uo2LBfU90onWEf1dF4C+0hPJCc9Mpc=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=

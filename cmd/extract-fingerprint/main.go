@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/cobratbq/goutils/std/errors"
+	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
@@ -18,9 +18,9 @@ func main() {
 	if err == io.EOF {
 		return
 	}
-	errors.RequireSuccess(err, "failed to decode public key")
+	builtin.RequireSuccess(err, "failed to decode public key")
 	pkt, err := packet.NewReader(block.Body).Next()
-	errors.RequireSuccess(err, "failed to read signature body")
+	builtin.RequireSuccess(err, "failed to read signature body")
 	switch key := pkt.(type) {
 	case *packet.PublicKey:
 		os.Stdout.WriteString(fmt.Sprintf("0x%040X", key.Fingerprint))

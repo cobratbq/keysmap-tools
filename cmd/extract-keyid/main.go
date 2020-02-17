@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/cobratbq/goutils/std/errors"
+	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
@@ -18,9 +18,9 @@ func main() {
 	if err == io.EOF {
 		return
 	}
-	errors.RequireSuccess(err, "failed to read signature")
+	builtin.RequireSuccess(err, "failed to read signature")
 	pkt, err := packet.NewReader(block.Body).Next()
-	errors.RequireSuccess(err, "failed to extract signature body")
+	builtin.RequireSuccess(err, "failed to extract signature body")
 	switch sig := pkt.(type) {
 	case *packet.Signature:
 		os.Stdout.WriteString(fmt.Sprintf("%016X\n", *sig.IssuerKeyId))

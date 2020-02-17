@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/cobratbq/goutils/std/builtin"
-	"github.com/cobratbq/goutils/std/errors"
 	sort_ "github.com/cobratbq/goutils/std/sort"
 	"github.com/cobratbq/goutils/std/strconv"
 )
@@ -176,7 +175,7 @@ func versionsorter(components []component) func(i, j int) bool {
 //    order (always case insensitive),
 // 4. (a dash usually precedes a qualifier, and) is always less important than
 //    something preceded with a dot.
-// FIXME is there any consequence for not paying special attention to distinctio between '.' and '-'?
+// FIXME is there any consequence for not paying special attention to distinction between '.' and '-'?
 func valuate(v string) int64 {
 	if len(v) == 0 {
 		return 0
@@ -292,7 +291,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		if err == io.EOF {
 			break
 		}
-		errors.RequireSuccess(err, "Unexpected failure reading line: %v")
+		builtin.RequireSuccess(err, "Unexpected failure reading line: %v")
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue
@@ -312,7 +311,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		}
 		var v [20]byte
 		n, err := hex.Decode(v[:], []byte(matches[4]))
-		errors.RequireSuccess(err, "Failed to decode key fingerprint: %v")
+		builtin.RequireSuccess(err, "Failed to decode key fingerprint: %v")
 		if n != 0 && n != 20 {
 			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for key fingerprint: %d\n", n))
 			continue

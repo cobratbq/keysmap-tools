@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cobratbq/goutils/std/errors"
+	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
 )
 
@@ -31,7 +31,7 @@ func main() {
 			if exiterr, ok := err.(*exec.ExitError); ok && exiterr.ProcessState.ExitCode() == 22 {
 				// no need to panic if document is simply unavailable (404)
 				f, err := os.Create(destinationPath)
-				errors.RequireSuccess(err, "Failed to create empty file "+destinationPath+": %+v")
+				builtin.RequireSuccess(err, "Failed to create empty file "+destinationPath+": %+v")
 				f.Close()
 				continue
 			}

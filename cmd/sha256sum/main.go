@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cobratbq/goutils/std/errors"
+	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
 )
 
@@ -64,7 +64,7 @@ func main() {
 				exitCode = 1
 				continue
 			}
-			errors.RequireSuccess(err, "Unexpected failure reading content from '"+source+"': %v")
+			builtin.RequireSuccess(err, "Unexpected failure reading content from '"+source+"': %v")
 			writeChecksum(os.Stdout, sum, source)
 		}
 	}
@@ -117,7 +117,7 @@ func verifySource(c *config, source string) (uint, error) {
 		}
 		defer io_.CloseLogged(f, "Failed to close source: %+v")
 		stat, err := f.Stat()
-		errors.RequireSuccess(err, "Failed to acquire source metadata: %v")
+		builtin.RequireSuccess(err, "Failed to acquire source metadata: %v")
 		if stat.IsDir() {
 			return 0, os.ErrInvalid
 		}
@@ -130,7 +130,7 @@ func verifySource(c *config, source string) (uint, error) {
 		if err == io.EOF {
 			break
 		}
-		errors.RequireSuccess(err, "Unexpected interruption while reading content: %v")
+		builtin.RequireSuccess(err, "Unexpected interruption while reading content: %v")
 		matches := checksumLineFormat.FindStringSubmatch(strings.TrimRight(line, "\n\r"))
 		if matches == nil {
 			continue
@@ -146,7 +146,7 @@ func verifySource(c *config, source string) (uint, error) {
 				return 0, os.ErrNotExist
 			}
 			actual, err = checksum(f)
-			errors.RequireSuccess(err, "sha256sum: "+fileName+": failed to read all content")
+			builtin.RequireSuccess(err, "sha256sum: "+fileName+": failed to read all content")
 			f.Close()
 		}
 		if fmt.Sprintf("%064x", actual) != matches[1] {
@@ -182,7 +182,7 @@ func checksumSource(out io.Writer, source string) ([]byte, error) {
 		}
 		defer io_.CloseLogged(f, "Failed to close source: %+v")
 		stat, err := f.Stat()
-		errors.RequireSuccess(err, "Failed to acquire file metadata: %v")
+		builtin.RequireSuccess(err, "Failed to acquire file metadata: %v")
 		if stat.IsDir() {
 			return nil, os.ErrInvalid
 		}
@@ -201,5 +201,5 @@ func checksum(in io.Reader) ([]byte, error) {
 
 func writeChecksum(out io.Writer, checksum []byte, name string) {
 	_, err := out.Write([]byte(fmt.Sprintf("%064x *%s\n", checksum, name)))
-	errors.RequireSuccess(err, "Failed to write checksum line to stdout: %v")
+	builtin.RequireSuccess(err, "Failed to write checksum line to stdout: %v")
 }
