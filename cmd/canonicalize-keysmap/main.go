@@ -14,7 +14,6 @@ import (
 
 	"github.com/cobratbq/goutils/std/builtin"
 	sort_ "github.com/cobratbq/goutils/std/sort"
-	"github.com/cobratbq/goutils/std/strconv"
 )
 
 // TODO investigate what the exact rules are for groupID, artifactID and version strings.
@@ -99,167 +98,17 @@ func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, [
 	return ranges, rangeorder
 }
 
-func orderVersions(versions []string) []string {
-	components := make([]component, 0, len(versions))
-	for _, v := range versions {
-		components = append(components, componentize(v))
+func orderVersions(versionstrings []string) []string {
+	versions := make([]version, 0, len(versionstrings))
+	for _, v := range versionstrings {
+		versions = append(versions, componentize(v))
 	}
-	sort.Slice(components, versionsorter(components))
+	sort.Slice(versions, versionsorter(versions))
 	sorted := make([]string, 0)
-	for _, v := range components {
-		sorted = append(sorted, v.version)
+	for _, v := range versions {
+		sorted = append(sorted, v.source)
 	}
 	return sorted
-}
-
-// extraordinaryLabelValue offsets any numeric version > 2 with +2, such that
-// we can represent an order if alpha and numeric components are mixed.
-// Offsetting +2 allows us to fit in alpha components "sp" and any undefined
-// labels, while still respecting priority of numeric versions.
-const extraordinaryLabelOffset = 2
-
-// versionsorter produces a function that sorts according to Maven's rules on
-// version ordering:
-// (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html)
-//
-// 1. component:
-//    all-alpha / all-numeric
-// 2. separators:
-//    '-' / '.' / alpha-numeric-transition
-// [..]
-func versionsorter(components []component) func(i, j int) bool {
-	return func(i, j int) bool {
-		compA := components[i].components
-		compB := components[j].components
-		for len(compA) < len(compB) {
-			compA = append(compA, "")
-		}
-		for len(compA) > len(compB) {
-			compB = append(compB, "")
-		}
-		for k := 0; k < len(compA) || k < len(compB); k++ {
-			valueA := valuate(compA[k])
-			valueB := valuate(compB[k])
-			if valueA < valueB {
-				return true
-			}
-			if valueA > valueB {
-				return false
-			}
-			if valueA == extraordinaryLabelOffset {
-				return strings.Compare(compA[k], compB[k]) <= 0
-			}
-			continue
-		}
-		return true
-	}
-}
-
-// valuate determines a symbolic value for the version component for use in mixed numeric/alpha comparison.
-//
-// version ordering:
-// (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html)
-//
-// [..]
-// 3. qualifiers: strings are checked for well-known qualifiers and the
-//    qualifier ordering is used for version ordering. Well-known qualifiers
-//    (case insensitive) are:
-//    - "alpha" or "a"
-//    - "beta" or "b"
-//    - "milestone" or "m"
-//    - "rc" or "cr"
-//    - "snapshot"
-//    - (the empty string) or "ga" or "final" [or "release", addition Danny]
-//    - "sp"
-//    Unknown qualifiers are considered after known qualifiers, with lexical
-//    order (always case insensitive),
-// 4. (a dash usually precedes a qualifier, and) is always less important than
-//    something preceded with a dot.
-// FIXME is there any consequence for not paying special attention to distinction between '.' and '-'?
-func valuate(v string) int64 {
-	if len(v) == 0 {
-		return 0
-	}
-	if classify([]byte(v)) == numeric {
-		num := strconv.MustParseInt(v, 10, 64)
-		if num == 0 {
-			return 0
-		}
-		// offset numeric value, such that numerics "> 0" are always preferred
-		// over alpha components.
-		return num + extraordinaryLabelOffset
-	}
-	switch strings.ToLower(v) {
-	case "a", "alpha":
-		return -5
-	case "b", "beta":
-		return -4
-	case "m", "milestone":
-		return -3
-	case "rc", "cr":
-		return -2
-	case "snapshot":
-		return -1
-	case "", "ga", "final", "release":
-		return 0
-	case "sp":
-		return 1
-	default:
-		return extraordinaryLabelOffset
-	}
-}
-
-func componentize(version string) component {
-	components := []string{}
-	cmp := ""
-	for _, c := range []byte(version) {
-		// FIXME added '_' as separator, not sure if this is correct but found in artifact-version list. (or treat as alpha?)
-		if c == '.' || c == '-' || c == '_' {
-			// in case of explicit separators '.' and '-'
-			builtin.Require(len(cmp) > 0,
-				"BUG? expected separator to separate either an alpha or numeric component.")
-			components = append(components, strings.ToLower(cmp))
-			cmp = ""
-			continue
-		}
-		if len(cmp) > 0 && classify([]byte(cmp)) != classify([]byte{c}) {
-			// in case of implicit separation
-			components = append(components, strings.ToLower(cmp))
-			cmp = ""
-		}
-		cmp += string(c)
-	}
-	if len(cmp) > 0 {
-		components = append(components, strings.ToLower(cmp))
-	}
-	return component{version: version, components: components}
-}
-
-type component struct {
-	version    string
-	components []string
-}
-
-type tokenclass uint
-
-const (
-	_ tokenclass = iota
-	alpha
-	numeric
-)
-
-func classify(component []byte) tokenclass {
-	if len(component) == 0 {
-		return numeric
-	}
-	b := component[len(component)-1]
-	if b >= '0' && b <= '9' {
-		return numeric
-	}
-	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {
-		return alpha
-	}
-	panic(fmt.Sprintf("BUG: Unknown token type: %v", b))
 }
 
 func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID string) [20]byte {
