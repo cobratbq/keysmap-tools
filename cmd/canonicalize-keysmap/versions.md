@@ -10,7 +10,7 @@
 ## Order of priority
 
 ```
-"a"/"alpha" < "b"/"beta" < "m"/"milestone" < "rc"/"cr" < "snapshot" < ""/"ga"/"final"/"release"/0 < "sp" < positive integer value
+"a"/"alpha" < "b"/"beta" < "m"/"milestone" < "rc"/"cr" < "snapshot" < ""/"ga"/"final"/"release"/0 < "sp" < any non-predefined string < positive integer value
 ```
 
 ## References
