@@ -129,8 +129,8 @@ const extraordinaryLabelOffset = 2
 // [..]
 func versionsorter(components []component) func(i, j int) bool {
 	return func(i, j int) bool {
-		compA := components[i].components[:]
-		compB := components[j].components[:]
+		compA := components[i].components
+		compB := components[j].components
 		for len(compA) < len(compB) {
 			compA = append(compA, "")
 		}
