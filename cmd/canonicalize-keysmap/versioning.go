@@ -157,9 +157,6 @@ type component struct {
 }
 
 func classify(component []byte) tokenclass {
-	if len(component) == 0 {
-		return numeric
-	}
 	b := component[0]
 	if b >= '0' && b <= '9' {
 		return numeric
