@@ -9,7 +9,9 @@
 
 ## Order of priority
 
-```
+The following priority ordering ensures different versions (version components) are ordered correctly. This assumes that version components are encountered at same "sublevel", meaning same number of '`-`' have been encountered.
+
+```text
 "a"/"alpha" < "b"/"beta" < "m"/"milestone" < "rc"/"cr" < "snapshot" < ""/"ga"/"final"/"release"/0 < "sp" < any non-predefined string < positive integer value
 ```
 

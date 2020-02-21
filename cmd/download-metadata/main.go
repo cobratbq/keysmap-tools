@@ -7,14 +7,13 @@ import (
 	"flag"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/std/net/http"
 )
 
 const repositoryBaseURL = "https://repo1.maven.org/maven2/"
@@ -46,7 +45,12 @@ func main() {
 		artifactID := matches[2]
 		url := generateMetadataURL(groupID, artifactID)
 		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
-		err := cmd("curl", "-f", "-z", destFile, "-o", destFile, url)
+		if _, err := os.Stat(destFile); err == nil {
+			os.Stderr.WriteString("Skipping " + destFile + "\n")
+			continue
+		}
+		os.Stderr.WriteString("Downloading " + url + " ...\n")
+		err := http.DownloadToFile(destFile, url)
 		builtin.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
 	}
 	if err != io.EOF {
@@ -57,22 +61,4 @@ func main() {
 func generateMetadataURL(groupID, artifactID string) string {
 	groupIDPath := path.Join(strings.Split(groupID, ".")...)
 	return repositoryBaseURL + path.Join(groupIDPath, artifactID, "maven-metadata.xml")
-}
-
-func cmd(command ...string) error {
-	cmd := exec.Command(command[0], command[1:]...)
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		io.Copy(os.Stderr, stderrPipe)
-		wg.Done()
-	}()
-	err = cmd.Run()
-	wg.Wait()
-	os.Stderr.Write([]byte{'\n'})
-	return err
 }

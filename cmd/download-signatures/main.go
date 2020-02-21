@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -14,28 +15,35 @@ import (
 
 	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
+	http_ "github.com/cobratbq/goutils/std/net/http"
 )
 
 func main() {
 	destination := flag.String("d", "artifact-signatures", "The destination location for downloaded artifact signatures.")
 	flag.Parse()
 
+	// TODO read metadata in separate goroutine and dump URLs on buffered channel.
 	data := io_.MustReadAll(os.Stdin)
 	var metadata metadata
 	xml.Unmarshal(data, &metadata)
 	for _, version := range metadata.Versions {
+		destinationPath := path.Join(*destination, generateName(metadata.GroupID, metadata.ArtifactID, version))
+		if _, err := os.Stat(destinationPath); err == nil {
+			os.Stderr.WriteString("Skipping " + destinationPath + "\n")
+			continue
+		}
 		url := generateURL(metadata.GroupID, metadata.ArtifactID, version)
-		name := generateName(metadata.GroupID, metadata.ArtifactID, version)
-		destinationPath := path.Join(*destination, name)
-		if err := cmd("curl", "-f", "-o", destinationPath, "-z", destinationPath, url); err != nil {
-			if exiterr, ok := err.(*exec.ExitError); ok && exiterr.ProcessState.ExitCode() == 22 {
-				// no need to panic if document is simply unavailable (404)
-				f, err := os.Create(destinationPath)
-				builtin.RequireSuccess(err, "Failed to create empty file "+destinationPath+": %+v")
-				f.Close()
-				continue
+		os.Stderr.WriteString("Downloading " + url + " ...\n")
+		if err := http_.DownloadToFile(destinationPath, url); err != nil {
+			if code, ok := err.(http_.ErrStatusCode); !ok || code != http.StatusNotFound {
+				panic("Failed to download " + destinationPath + ": " + err.Error())
 			}
-			panic("Failed to download " + destinationPath + ": " + err.Error())
+			// no need to panic if document is simply not found (404)
+			// FIXME extract utility "Touch"
+			f, err := os.Create(destinationPath)
+			builtin.RequireSuccess(err, "Failed to create empty file "+destinationPath+": %+v")
+			f.Close()
+			os.Stderr.WriteString("  not found: " + url + "\n")
 		}
 	}
 }
@@ -61,6 +69,7 @@ func generateURL(groupID, artifactID, version string) string {
 	return repositoryBaseURL + path.Join(groupIDPath, artifactID, version, fileName)
 }
 
+// FIXME migrate to goutils.
 func cmd(command ...string) error {
 	cmd := exec.Command(command[0], command[1:]...)
 	stderrPipe, err := cmd.StderrPipe()
