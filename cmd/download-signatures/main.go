@@ -5,13 +5,10 @@ package main
 import (
 	"encoding/xml"
 	"flag"
-	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
-	"sync"
 
 	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
@@ -66,23 +63,4 @@ func generateURL(groupID, artifactID, version string) string {
 	groupIDPath := path.Join(strings.Split(groupID, ".")...)
 	fileName := artifactID + "-" + version + ".jar.asc"
 	return repositoryBaseURL + path.Join(groupIDPath, artifactID, version, fileName)
-}
-
-// FIXME migrate to goutils.
-func cmd(command ...string) error {
-	cmd := exec.Command(command[0], command[1:]...)
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		io.Copy(os.Stderr, stderrPipe)
-		wg.Done()
-	}()
-	err = cmd.Run()
-	wg.Wait()
-	os.Stderr.Write([]byte{'\n'})
-	return err
 }
