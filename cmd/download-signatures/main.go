@@ -16,6 +16,7 @@ import (
 	"github.com/cobratbq/goutils/std/builtin"
 	io_ "github.com/cobratbq/goutils/std/io"
 	http_ "github.com/cobratbq/goutils/std/net/http"
+	os_ "github.com/cobratbq/goutils/std/os"
 )
 
 func main() {
@@ -34,15 +35,13 @@ func main() {
 		}
 		url := generateURL(metadata.GroupID, metadata.ArtifactID, version)
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
-		if err := http_.DownloadToFile(destinationPath, url); err != nil {
+		if err := http_.DownloadToFilePath(destinationPath, url); err != nil {
 			if code, ok := err.(http_.ErrStatusCode); !ok || code != http.StatusNotFound {
 				panic("Failed to download " + destinationPath + ": " + err.Error())
 			}
 			// no need to panic if document is simply not found (404)
-			// FIXME extract utility "Touch"
-			f, err := os.Create(destinationPath)
-			builtin.RequireSuccess(err, "Failed to create empty file "+destinationPath+": %+v")
-			f.Close()
+			builtin.RequireSuccess(os_.CreateEmptyFile(destinationPath),
+				"Failed to create empty file "+destinationPath+": %+v")
 			os.Stderr.WriteString("  not found: " + url + "\n")
 		}
 	}

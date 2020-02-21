@@ -50,7 +50,7 @@ func main() {
 			continue
 		}
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
-		err := http.DownloadToFile(destFile, url)
+		err := http.DownloadToFilePath(destFile, url)
 		builtin.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
 	}
 	if err != io.EOF {
