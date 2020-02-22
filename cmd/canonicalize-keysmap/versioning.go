@@ -21,8 +21,6 @@ const extraordinaryLabelOffset = 2
 //
 // 1. component:
 //    all-alpha / all-numeric
-// 2. separators:
-//    '-' / '.' / alpha-numeric-transition
 // [..]
 func versionsorter(components []version) func(i, j int) bool {
 	return func(i, j int) bool {
@@ -83,8 +81,7 @@ func versionsorter(components []version) func(i, j int) bool {
 //    - "sp"
 //    Unknown qualifiers are considered after known qualifiers, with lexical
 //    order (always case insensitive),
-// 4. (a dash usually precedes a qualifier, and) is always less important than
-//    something preceded with a dot.
+// [..]
 func valuate(v string) int64 {
 	if len(v) == 0 {
 		return 0
@@ -118,6 +115,17 @@ func valuate(v string) int64 {
 	}
 }
 
+// versionsorter produces a function that sorts according to Maven's rules on
+// version ordering:
+// (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html,
+//  https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
+//
+// [..]
+// 2. separators:
+//    '-' / '.' / alpha-numeric-transition
+// [..]
+// 4. (a dash usually precedes a qualifier, and) is always less important than
+//    something preceded with a dot.
 func componentize(versionstring string) version {
 	components := []component{}
 	depth := uint(0)
@@ -129,6 +137,9 @@ func componentize(versionstring string) version {
 			components = append(components, component{sub: depth, value: strings.ToLower(cmp)})
 			cmp = ""
 			if c == '-' {
+				// '-' increases the sublevel depth, indicating that all future
+				// components are part of a deeper sub-level of the version
+				// string.
 				depth++
 			}
 			continue
@@ -161,7 +172,7 @@ func classify(component []byte) tokenclass {
 	if b >= '0' && b <= '9' {
 		return numeric
 	}
-	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '-' || b == '_' {
+	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' {
 		return alpha
 	}
 	panic(fmt.Sprintf("BUG: Unknown token type: %c", b))
