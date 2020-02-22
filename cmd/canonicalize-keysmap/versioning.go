@@ -62,7 +62,8 @@ func versionsorter(components []version) func(i, j int) bool {
 	}
 }
 
-// valuate determines a symbolic value for the version component for use in mixed numeric/alpha comparison.
+// valuate determines a symbolic value for the version component for use in
+// mixed numeric/alpha comparison.
 //
 // version ordering:
 // (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html,
