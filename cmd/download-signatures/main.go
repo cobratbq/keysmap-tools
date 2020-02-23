@@ -27,6 +27,8 @@ func main() {
 	for _, version := range metadata.Versions {
 		destinationPath := path.Join(*destination, generateName(metadata.GroupID, metadata.ArtifactID, version))
 		if _, err := os.Stat(destinationPath); err == nil {
+			// As artifact signatures are extremely unlikely to change, there
+			// is no sense in even thinking of downloading them again.
 			os.Stderr.WriteString("Skipping " + destinationPath + "\n")
 			continue
 		}
@@ -34,6 +36,7 @@ func main() {
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
 		if err := http_.DownloadToFilePath(destinationPath, url); err != nil {
 			if code, ok := err.(http_.ErrStatusCode); !ok || code != http.StatusNotFound {
+				// TODO how should we behave in case of HTTP status code 500?
 				panic("Failed to download " + destinationPath + ": " + err.Error())
 			}
 			// no need to panic if document is simply not found (404)
