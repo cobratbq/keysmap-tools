@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -44,11 +43,6 @@ func main() {
 		groupID := matches[1]
 		artifactID := matches[2]
 		url := generateMetadataURL(groupID, artifactID)
-		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
-		if _, err := os.Stat(destFile); err == nil {
-			os.Stderr.WriteString("Skipping " + destFile + "\n")
-			continue
-		}
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
 		err := http.DownloadToFilePath(destFile, url)
 		builtin.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
