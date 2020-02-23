@@ -18,7 +18,7 @@ import (
 
 const repositoryBaseURL = "https://repo1.maven.org/maven2/"
 
-var artifactPattern = regexp.MustCompile(`([a-zA-Z0-9\._]+):([a-zA-Z0-9\.\-_]+)`)
+var artifactPattern = regexp.MustCompile(`([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+)`)
 
 func main() {
 	destination := flag.String("d", "artifact-metadata", "Destination directory for artifact metadata.")
