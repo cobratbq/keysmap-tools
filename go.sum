@@ -16,6 +16,10 @@ github.com/cobratbq/goutils v0.0.0-20200221172559-f64349412148 h1:wZYua+1YVSKoao
 github.com/cobratbq/goutils v0.0.0-20200221172559-f64349412148/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
 github.com/cobratbq/goutils v0.0.0-20200221181927-e308e1a40094 h1:94bhAmRN7lvnilM6VGdzl1DRsKfM2IqlDzXQbQwk1m8=
 github.com/cobratbq/goutils v0.0.0-20200221181927-e308e1a40094/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20200226134721-3d3adb53ada8 h1:/kfN2hYrfy82AUaj9n5EbVriIuCh7S1rKk4aHelg/uI=
+github.com/cobratbq/goutils v0.0.0-20200226134721-3d3adb53ada8/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/google/renameio v0.1.0 h1:GOZbcHa3HfsPKPlmyPyN2KEohoMXOhdMbHrvbpl2QaA=
+github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 h1:sKJQZMuxjOAR/Uo2LBfU90onWEf1dF4C+0hPJCc9Mpc=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=

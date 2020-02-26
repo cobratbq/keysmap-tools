@@ -3,23 +3,25 @@
 .PHONY: all
 all: download-metadata download-signatures extract-keyid extract-fingerprint sha256sum canonicalize-keysmap
 
-download-metadata: cmd/download-metadata/*.go
+download-metadata: base cmd/download-metadata/*.go
 	go build ./cmd/download-metadata
 
-download-signatures: cmd/download-signatures/*.go
+download-signatures: base cmd/download-signatures/*.go
 	go build ./cmd/download-signatures
 
-extract-keyid: cmd/extract-keyid/*.go
+extract-keyid: base cmd/extract-keyid/*.go
 	go build ./cmd/extract-keyid
 
-extract-fingerprint: cmd/extract-fingerprint/*.go
+extract-fingerprint: base cmd/extract-fingerprint/*.go
 	go build ./cmd/extract-fingerprint
 
-sha256sum: cmd/sha256sum/*.go
+sha256sum: base cmd/sha256sum/*.go
 	go build ./cmd/sha256sum
 
-canonicalize-keysmap: cmd/canonicalize-keysmap/*.go
+canonicalize-keysmap: base cmd/canonicalize-keysmap/*.go
 	go build ./cmd/canonicalize-keysmap
+
+base: go.mod go.sum
 
 .PHONY: clean
 clean:
