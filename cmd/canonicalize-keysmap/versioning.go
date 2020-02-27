@@ -173,7 +173,7 @@ func classify(component []byte) tokenclass {
 	if b >= '0' && b <= '9' {
 		return numeric
 	}
-	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' {
+	if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == '+' {
 		return alpha
 	}
 	panic(fmt.Sprintf("BUG: Unknown token type: %c", b))
