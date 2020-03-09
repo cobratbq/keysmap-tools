@@ -162,7 +162,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		n, err := hex.Decode(v[:], []byte(matches[4]))
 		builtin.RequireSuccess(err, "Failed to decode key fingerprint: %v")
 		if n != 0 && n != 20 {
-			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for key fingerprint: %d\n", n))
+			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for public key fingerprint: %d\n", n))
 			continue
 		}
 		artifact[matches[3]] = v
