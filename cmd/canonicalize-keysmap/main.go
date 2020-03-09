@@ -142,7 +142,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		}
 		builtin.RequireSuccess(err, "Unexpected failure reading line: %v")
 		line = strings.TrimSpace(line)
-		if len(line) == 0 {
+		if len(line) == 0 || strings.HasPrefix(line, "#") {
 			continue
 		}
 		matches := keysmapLineFormat.FindStringSubmatch(line)
