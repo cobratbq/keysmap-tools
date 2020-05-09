@@ -43,7 +43,7 @@ func versionsorter(components []version) func(i, j int) bool {
 				return valueCompA < 0 || valueCompB > 0
 			}
 			if compA.sub < compB.sub {
-				return valueCompA < 0 || (valueCompA == 0 && valueCompB > 0)
+				return valueCompA <= 0 && valueCompB > 0
 			}
 			if valueCompA < valueCompB {
 				return true

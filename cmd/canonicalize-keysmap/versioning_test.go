@@ -46,6 +46,8 @@ func TestVersionSorting(t *testing.T) {
 		{"1-1", "1-sp", false},
 		{"1.0-alpha-1-SNAPSHOT", "1.0-SNAPSHOT", true},
 		{"2.0-1-SNAPSHOT", "2.0.1-SNAPSHOT", true},
+		{"1.1.2", "1.1.2-3", true},
+		{"1.1.2-3", "1.1.2", false},
 	}
 	for _, v := range testvalues {
 		input := []version{componentize(v.ver1), componentize(v.ver2)}
