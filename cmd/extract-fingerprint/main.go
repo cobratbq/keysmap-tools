@@ -16,7 +16,8 @@ import (
 func main() {
 	block, err := armor.Decode(os.Stdin)
 	if err == io.EOF {
-		return
+		// do not silently accept that public key data is non-existent
+		os.Exit(1)
 	}
 	builtin.RequireSuccess(err, "failed to decode public key")
 	pkt, err := packet.NewReader(block.Body).Next()

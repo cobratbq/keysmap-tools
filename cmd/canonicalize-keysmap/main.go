@@ -17,10 +17,11 @@ import (
 )
 
 // TODO investigate what the exact rules are for groupID, artifactID and version strings.
-var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-\+_]*)\s*=\s*(?:0x([0-9A-F]{40}))?$`)
+var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-\+_]*)\s*=\s*(0x[0-9A-F]{40}|noKey)?$`)
 
 var fingerprintUnset = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 var fingerprintZero = [20]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+var fingerprintNoKey = [20]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
 
 func main() {
 	// "<groupID>:<artifactID>" -> version -> key fingerprint
@@ -54,6 +55,8 @@ func main() {
 func writeKeysMapLine(identifier string, fingerprint [20]byte) {
 	if fingerprint == fingerprintZero {
 		fmt.Printf("%s =\n", identifier)
+	} else if fingerprint == fingerprintNoKey {
+		fmt.Printf("%s = noKey\n", identifier)
 	} else {
 		fmt.Printf("%s = 0x%040X\n", identifier, fingerprint)
 	}
@@ -159,8 +162,15 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 			keysmap[key] = artifact
 		}
 		var v [20]byte
-		n, err := hex.Decode(v[:], []byte(matches[4]))
-		builtin.RequireSuccess(err, "Failed to decode key fingerprint: %v")
+		var n int
+		if matches[4] == "" {
+			n, v = 0, fingerprintZero
+		} else if matches[4] == "noKey" {
+			n, v = len(fingerprintNoKey), fingerprintNoKey
+		} else {
+			n, err = hex.Decode(v[:], []byte(matches[4][2:]))
+			builtin.RequireSuccess(err, "Failed to decode key fingerprint: %v")
+		}
 		if n != 0 && n != 20 {
 			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for public key fingerprint: %d\n", n))
 			continue
