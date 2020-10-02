@@ -104,7 +104,8 @@ func artifactVersionRanges(artifact map[string]fingerprint) (map[string]fingerpr
 		ranges[rangekey] = artifact[versions[rangeStart]]
 		rangeorder = append(rangeorder, rangekey)
 	} else if rangeStart < len(versions) {
-		rangekey := "[" + versions[rangeStart] + ",)"
+		// Use definite end of version-range. Fingerprints are already gathered in catch-all entry.
+		rangekey := "[" + versions[rangeStart] + "," + versions[len(versions)-1] + "]"
 		ranges[rangekey] = artifact[versions[rangeStart]]
 		rangeorder = append(rangeorder, rangekey)
 	}
