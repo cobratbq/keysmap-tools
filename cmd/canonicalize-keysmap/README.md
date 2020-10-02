@@ -4,8 +4,11 @@ A program for canonicalizing the keysmap entries into ranges for conciseness.
 
 ## Design
 
-- `TODO: keysmap containing public keys for 'groupID:artifactID' entries. Relying on public key revocation for halting acceptance of signature, ensures multiple keys can be used interchangibly.`
-- ...
+- Deterministic ordered generation of pgp-keys map.
+- Prioritize special-cases 'noSig' and 'noKey'.
+- Group all public keys for any version of an artifact, i.e. `groupID:artifactID = key1, key2, key3, ...`.
+  - assumes that untrusted keys are revoked.
+  - assumes that once public key is used to sign an artifact version once, it may reappear for future versions.
 
 ## Versions
 

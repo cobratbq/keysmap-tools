@@ -57,7 +57,6 @@ func main() {
 			writeKeysMapLine(identifier, fingerprints)
 		}
 	}
-	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
 func writeKeysMapLine(identifier string, fingerprints []fingerprint) {
