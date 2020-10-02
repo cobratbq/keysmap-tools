@@ -32,7 +32,7 @@ func main() {
 	for _, groupID := range groups {
 		groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
 		if groupFingerprint != fingerprintUnset {
-			writeKeysMapLine(groupID, groupFingerprint)
+			writeKeysMapLine(groupID, []fingerprint{groupFingerprint})
 			continue
 		}
 		for _, identifier := range identifiers {
@@ -41,35 +41,44 @@ func main() {
 				continue
 			}
 			ranges, order := artifactVersionRanges(artifact)
+			fingerprints := make([]fingerprint, 0)
 			for _, versionrange := range order {
-				fingerprint := ranges[versionrange]
-				key := identifier
-				if versionrange != "" {
-					key += ":" + versionrange
+				fpr := ranges[versionrange]
+				if fpr == fingerprintZero || fpr == fingerprintNoKey {
+					key := identifier
+					if versionrange != "" {
+						key += ":" + versionrange
+					}
+					writeKeysMapLine(key, []fingerprint{fpr})
+					continue
 				}
-				writeKeysMapLine(key, fingerprint)
+				fingerprints = append(fingerprints, fpr)
 			}
+			writeKeysMapLine(identifier, fingerprints)
 		}
 	}
 	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
-func writeKeysMapLine(identifier string, fingerprint fingerprint) {
-	if fingerprint == fingerprintZero {
+func writeKeysMapLine(identifier string, fingerprints []fingerprint) {
+	if len(fingerprints) <= 0 {
+		return
+	}
+	if len(fingerprints) == 1 && fingerprints[0] == fingerprintZero {
 		fmt.Printf("%s =\n", identifier)
-	} else if fingerprint == fingerprintNoKey {
+	} else if len(fingerprints) == 1 && fingerprints[0] == fingerprintNoKey {
 		fmt.Printf("%s = noKey\n", identifier)
 	} else {
-		fmt.Printf("%s = 0x%040X\n", identifier, fingerprint)
+		fmt.Printf("%s = 0x%040X", identifier, fingerprints[0])
+		for i := 1; i < len(fingerprints); i++ {
+			fmt.Printf(", 0x%040X", fingerprints[i])
+		}
+		fmt.Printf("\n")
 	}
 }
 
 func artifactVersionRanges(artifact map[string]fingerprint) (map[string]fingerprint, []string) {
-	versions := make([]string, 0, len(artifact))
-	for v := range artifact {
-		versions = append(versions, v)
-	}
-	versions = orderVersions(versions)
+	versions := artifactVersionOrder(artifact)
 
 	ranges := make(map[string]fingerprint, 1)
 	rangeorder := make([]string, 0, 1)
@@ -101,6 +110,14 @@ func artifactVersionRanges(artifact map[string]fingerprint) (map[string]fingerpr
 		rangeorder = append(rangeorder, rangekey)
 	}
 	return ranges, rangeorder
+}
+
+func artifactVersionOrder(artifact map[string]fingerprint) []string {
+	versions := make([]string, 0, len(artifact))
+	for v := range artifact {
+		versions = append(versions, v)
+	}
+	return orderVersions(versions)
 }
 
 func orderVersions(versionstrings []string) []string {
