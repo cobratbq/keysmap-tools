@@ -1,4 +1,13 @@
-# Versions
+# README
+
+A program for canonicalizing the keysmap entries into ranges for conciseness.
+
+## Design
+
+- `TODO: keysmap containing public keys for 'groupID:artifactID' entries. Relying on public key revocation for halting acceptance of signature, ensures multiple keys can be used interchangibly.`
+- ...
+
+## Versions
 
 - Separation of version components:
   - `.` separates version components.
@@ -8,7 +17,7 @@
   Dash-separators are typically used to indicate a second iteration of packaging a single version, for example to tackle issues with forgotten dependencies. `1.0-1` is a first attempt at packaging version `1.0`, while `1.0-2` is the second attempt.
 - missing component implies `0` (digit)/`` (empty string alpha).
 
-## Order of priority
+### Order of priority
 
 Equality of different version specifications:
 
