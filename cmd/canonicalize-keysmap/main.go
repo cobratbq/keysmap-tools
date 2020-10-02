@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -32,7 +33,7 @@ func main() {
 	for _, groupID := range groups {
 		groupFingerprint := allArtifactsVersionsSame(keysmap, groupID)
 		if groupFingerprint != fingerprintUnset {
-			writeKeysMapLine(groupID, []fingerprint{groupFingerprint})
+			writeKeysMapLine(groupID, map[fingerprint]struct{}{groupFingerprint: {}})
 			continue
 		}
 		for _, identifier := range identifiers {
@@ -41,7 +42,7 @@ func main() {
 				continue
 			}
 			ranges, order := artifactVersionRanges(artifact)
-			fingerprints := make([]fingerprint, 0)
+			fingerprints := make(map[fingerprint]struct{}, 0)
 			for _, versionrange := range order {
 				fpr := ranges[versionrange]
 				if fpr == fingerprintZero || fpr == fingerprintNoKey {
@@ -49,28 +50,31 @@ func main() {
 					if versionrange != "" {
 						key += ":" + versionrange
 					}
-					writeKeysMapLine(key, []fingerprint{fpr})
+					writeKeysMapLine(key, map[fingerprint]struct{}{fpr: {}})
 					continue
 				}
-				fingerprints = append(fingerprints, fpr)
+				fingerprints[fpr] = struct{}{}
 			}
 			writeKeysMapLine(identifier, fingerprints)
 		}
 	}
 }
 
-func writeKeysMapLine(identifier string, fingerprints []fingerprint) {
-	if len(fingerprints) <= 0 {
+func writeKeysMapLine(identifier string, fingerprintset map[fingerprint]struct{}) {
+	if len(fingerprintset) <= 0 {
 		return
 	}
-	if len(fingerprints) == 1 && fingerprints[0] == fingerprintZero {
+	if _, ok := fingerprintset[fingerprintZero]; ok {
+		builtin.Require(len(fingerprintset) == 1, "expected singleton for zero fingerprint")
 		fmt.Printf("%s =\n", identifier)
-	} else if len(fingerprints) == 1 && fingerprints[0] == fingerprintNoKey {
+	} else if _, ok := fingerprintset[fingerprintNoKey]; ok {
+		builtin.Require(len(fingerprintset) == 1, "expected singleton for no-key fingerprint")
 		fmt.Printf("%s = noKey\n", identifier)
 	} else {
-		fmt.Printf("%s = 0x%040X", identifier, fingerprints[0])
-		for i := 1; i < len(fingerprints); i++ {
-			fmt.Printf(", 0x%040X", fingerprints[i])
+		fingerprintlist := orderFingerprintSet(fingerprintset)
+		fmt.Printf("%s = 0x%040X", identifier, fingerprintlist[0])
+		for i := 1; i < len(fingerprintlist); i++ {
+			fmt.Printf(", 0x%040X", fingerprintlist[i])
 		}
 		fmt.Printf("\n")
 	}
@@ -131,6 +135,17 @@ func orderVersions(versionstrings []string) []string {
 		sorted = append(sorted, v.source)
 	}
 	return sorted
+}
+
+func orderFingerprintSet(fingerprints map[fingerprint]struct{}) []fingerprint {
+	ordered := make([]fingerprint, 0)
+	for fpr := range fingerprints {
+		ordered = append(ordered, fpr)
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		return bytes.Compare([]byte(ordered[i][:]), []byte(ordered[j][:])) < 0
+	})
+	return ordered
 }
 
 func allArtifactsVersionsSame(keysmap map[string]map[string]fingerprint, groupID string) fingerprint {
