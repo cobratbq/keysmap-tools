@@ -19,9 +19,11 @@ import (
 // TODO investigate what the exact rules are for groupID, artifactID and version strings.
 var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-\+_]*)\s*=\s*(0x[0-9A-F]{40}|noKey)?$`)
 
-var fingerprintUnset = [20]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-var fingerprintZero = [20]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-var fingerprintNoKey = [20]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
+type fingerprint [20]byte
+
+var fingerprintUnset = fingerprint{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+var fingerprintZero = fingerprint{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+var fingerprintNoKey = fingerprint{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}
 
 func main() {
 	// "<groupID>:<artifactID>" -> version -> key fingerprint
@@ -52,7 +54,7 @@ func main() {
 	// TODO it would be possible to do a second pass and combine artifactIDs to '*' in case all artifacts are using the same version range specifier.
 }
 
-func writeKeysMapLine(identifier string, fingerprint [20]byte) {
+func writeKeysMapLine(identifier string, fingerprint fingerprint) {
 	if fingerprint == fingerprintZero {
 		fmt.Printf("%s =\n", identifier)
 	} else if fingerprint == fingerprintNoKey {
@@ -62,14 +64,14 @@ func writeKeysMapLine(identifier string, fingerprint [20]byte) {
 	}
 }
 
-func artifactVersionRanges(artifact map[string][20]byte) (map[string][20]byte, []string) {
+func artifactVersionRanges(artifact map[string]fingerprint) (map[string]fingerprint, []string) {
 	versions := make([]string, 0, len(artifact))
 	for v := range artifact {
 		versions = append(versions, v)
 	}
 	versions = orderVersions(versions)
 
-	ranges := make(map[string][20]byte, 1)
+	ranges := make(map[string]fingerprint, 1)
 	rangeorder := make([]string, 0, 1)
 	rangeStart := 0
 	for i := 1; i < len(versions); i++ {
@@ -114,7 +116,7 @@ func orderVersions(versionstrings []string) []string {
 	return sorted
 }
 
-func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID string) [20]byte {
+func allArtifactsVersionsSame(keysmap map[string]map[string]fingerprint, groupID string) fingerprint {
 	builtin.Require(len(keysmap) > 0, "Empty keysmap.")
 	var previous = fingerprintUnset
 	for key, version := range keysmap {
@@ -133,9 +135,9 @@ func allArtifactsVersionsSame(keysmap map[string]map[string][20]byte, groupID st
 	return previous
 }
 
-func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string, []string) {
+func readKeysMap(reader *bufio.Reader) (map[string]map[string]fingerprint, []string, []string) {
 	// groupID:artifactID -> version -> fingerprint
-	keysmap := make(map[string]map[string][20]byte, 0)
+	keysmap := make(map[string]map[string]fingerprint, 0)
 	groupset := make(map[string]struct{}, 0)
 	artifactset := make(map[string]struct{}, 0)
 	for {
@@ -158,10 +160,10 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string][20]byte, []string
 		artifactset[key] = struct{}{}
 		artifact := keysmap[key]
 		if artifact == nil {
-			artifact = make(map[string][20]byte, 1)
+			artifact = make(map[string]fingerprint, 1)
 			keysmap[key] = artifact
 		}
-		var v [20]byte
+		var v fingerprint
 		var n int
 		if matches[4] == "" {
 			n, v = 0, fingerprintZero
