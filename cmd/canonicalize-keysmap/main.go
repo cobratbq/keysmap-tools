@@ -18,7 +18,7 @@ import (
 )
 
 // TODO investigate what the exact rules are for groupID, artifactID and version strings.
-var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-\+_]*)\s*=\s*(0x[0-9A-F]{40}|noKey)?$`)
+var keysmapLineFormat = regexp.MustCompile(`^([a-zA-Z0-9\.\-_]+):([a-zA-Z0-9\.\-_]+):([0-9a-zA-Z][0-9a-zA-Z\.\-\+_]*)\s*=\s*(0x[0-9A-F]{40}|noKey|noSig)$`)
 
 type fingerprint [20]byte
 
@@ -66,7 +66,7 @@ func writeKeysMapLine(identifier string, fingerprintset map[fingerprint]struct{}
 	}
 	if _, ok := fingerprintset[fingerprintZero]; ok {
 		builtin.Require(len(fingerprintset) == 1, "expected singleton for zero fingerprint")
-		fmt.Printf("%s =\n", identifier)
+		fmt.Printf("%s = noSig\n", identifier)
 	} else if _, ok := fingerprintset[fingerprintNoKey]; ok {
 		builtin.Require(len(fingerprintset) == 1, "expected singleton for no-key fingerprint")
 		fmt.Printf("%s = noKey\n", identifier)
@@ -197,7 +197,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string]fingerprint, []str
 		}
 		var v fingerprint
 		var n int
-		if matches[4] == "" {
+		if matches[4] == "noSig" {
 			n, v = 0, fingerprintZero
 		} else if matches[4] == "noKey" {
 			n, v = len(fingerprintNoKey), fingerprintNoKey
