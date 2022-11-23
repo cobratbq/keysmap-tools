@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/assert"
 	"github.com/cobratbq/goutils/std/strconv"
 )
 
@@ -17,10 +17,12 @@ const extraordinaryLabelOffset = 2
 // versionsorter produces a function that sorts according to Maven's rules on
 // version ordering:
 // (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html,
-//  https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
 //
-// 1. component:
-//    all-alpha / all-numeric
+//		https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
+//
+//	 1. component:
+//	    all-alpha / all-numeric
+//
 // [..]
 func versionsorter(components []version) func(i, j int) bool {
 	return func(i, j int) bool {
@@ -67,21 +69,23 @@ func versionsorter(components []version) func(i, j int) bool {
 //
 // version ordering:
 // (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html,
-//  https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
+//
+//	https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
 //
 // [..]
-// 3. qualifiers: strings are checked for well-known qualifiers and the
-//    qualifier ordering is used for version ordering. Well-known qualifiers
-//    (case insensitive) are:
-//    - "alpha" or "a"
-//    - "beta" or "b"
-//    - "milestone" or "m"
-//    - "rc" or "cr"
-//    - "snapshot"
-//    - (the empty string) or "ga" or "final" [or "release"]
-//    - "sp"
-//    Unknown qualifiers are considered after known qualifiers, with lexical
-//    order (always case insensitive),
+//  3. qualifiers: strings are checked for well-known qualifiers and the
+//     qualifier ordering is used for version ordering. Well-known qualifiers
+//     (case insensitive) are:
+//     - "alpha" or "a"
+//     - "beta" or "b"
+//     - "milestone" or "m"
+//     - "rc" or "cr"
+//     - "snapshot"
+//     - (the empty string) or "ga" or "final" [or "release"]
+//     - "sp"
+//     Unknown qualifiers are considered after known qualifiers, with lexical
+//     order (always case insensitive),
+//
 // [..]
 func valuate(v string) int64 {
 	if len(v) == 0 {
@@ -119,21 +123,23 @@ func valuate(v string) int64 {
 // versionsorter produces a function that sorts according to Maven's rules on
 // version ordering:
 // (https://maven.apache.org/ref/3.6.2/maven-artifact/apidocs/org/apache/maven/artifact/versioning/ComparableVersion.html,
-//  https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
+//
+//	https://maven.apache.org/ref/3.6.3/maven-artifact/xref/org/apache/maven/artifact/versioning/ComparableVersion.html)
 //
 // [..]
-// 2. separators:
-//    '-' / '.' / alpha-numeric-transition
+//  2. separators:
+//     '-' / '.' / alpha-numeric-transition
+//
 // [..]
-// 4. (a dash usually precedes a qualifier, and) is always less important than
-//    something preceded with a dot.
+//  4. (a dash usually precedes a qualifier, and) is always less important than
+//     something preceded with a dot.
 func componentize(versionstring string) version {
 	components := []component{}
 	depth := uint(0)
 	cmp := ""
 	for _, c := range []byte(versionstring) {
 		if c == '.' || c == '-' {
-			builtin.Require(len(cmp) > 0,
+			assert.Require(len(cmp) > 0,
 				"BUG? expected separator to separate either an alpha or numeric component.")
 			components = append(components, component{sub: depth, value: strings.ToLower(cmp)})
 			cmp = ""

@@ -1,5 +1,7 @@
 github.com/cobratbq/goutils v0.0.0-20200226134721-3d3adb53ada8 h1:/kfN2hYrfy82AUaj9n5EbVriIuCh7S1rKk4aHelg/uI=
 github.com/cobratbq/goutils v0.0.0-20200226134721-3d3adb53ada8/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20220704232102-b427fa3c5866 h1:1Q1wxBVrMptzhNgb3oCDaVgW0iVtVUhQqiQ3S/aK8RQ=
+github.com/cobratbq/goutils v0.0.0-20220704232102-b427fa3c5866/go.mod h1:GZcu4UO0GCbLqLPUotoNSuyNzCloHWa8/zTiktHSOrc=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 h1:sKJQZMuxjOAR/Uo2LBfU90onWEf1dF4C+0hPJCc9Mpc=

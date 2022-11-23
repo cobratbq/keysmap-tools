@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/assert"
 	"github.com/cobratbq/goutils/std/net/http"
 )
 
@@ -47,7 +47,7 @@ func main() {
 		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
 		err := http.DownloadToFilePath(destFile, url)
-		builtin.RequireSuccess(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
+		assert.Success(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
 	}
 	if err != io.EOF {
 		panic(err.Error())

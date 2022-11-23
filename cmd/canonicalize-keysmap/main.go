@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/assert"
 	sort_ "github.com/cobratbq/goutils/std/sort"
 )
 
@@ -65,10 +65,10 @@ func writeKeysMapLine(identifier string, fingerprintset map[fingerprint]struct{}
 		return
 	}
 	if _, ok := fingerprintset[fingerprintZero]; ok {
-		builtin.Require(len(fingerprintset) == 1, "expected singleton for zero fingerprint")
+		assert.Require(len(fingerprintset) == 1, "expected singleton for zero fingerprint")
 		fmt.Printf("%s = noSig\n", identifier)
 	} else if _, ok := fingerprintset[fingerprintNoKey]; ok {
-		builtin.Require(len(fingerprintset) == 1, "expected singleton for no-key fingerprint")
+		assert.Require(len(fingerprintset) == 1, "expected singleton for no-key fingerprint")
 		fmt.Printf("%s = noKey\n", identifier)
 	} else {
 		fingerprintlist := orderFingerprintSet(fingerprintset)
@@ -149,7 +149,7 @@ func orderFingerprintSet(fingerprints map[fingerprint]struct{}) []fingerprint {
 }
 
 func allArtifactsVersionsSame(keysmap map[string]map[string]fingerprint, groupID string) fingerprint {
-	builtin.Require(len(keysmap) > 0, "Empty keysmap.")
+	assert.Require(len(keysmap) > 0, "Empty keysmap.")
 	var previous = fingerprintUnset
 	for key, version := range keysmap {
 		if !strings.HasPrefix(key, groupID+":") {
@@ -177,7 +177,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string]fingerprint, []str
 		if err == io.EOF {
 			break
 		}
-		builtin.RequireSuccess(err, "Unexpected failure reading line: %v")
+		assert.Success(err, "Unexpected failure reading line: %v")
 		line = strings.TrimSpace(line)
 		if len(line) == 0 || strings.HasPrefix(line, "#") {
 			continue
@@ -203,7 +203,7 @@ func readKeysMap(reader *bufio.Reader) (map[string]map[string]fingerprint, []str
 			n, v = len(fingerprintNoKey), fingerprintNoKey
 		} else {
 			n, err = hex.Decode(v[:], []byte(matches[4][2:]))
-			builtin.RequireSuccess(err, "Failed to decode key fingerprint: %v")
+			assert.Success(err, "Failed to decode key fingerprint: %v")
 		}
 		if n != 0 && n != 20 {
 			os.Stderr.WriteString(fmt.Sprintf("Incorrect length for public key fingerprint: %d\n", n))

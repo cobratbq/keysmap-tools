@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/assert"
 	io_ "github.com/cobratbq/goutils/std/io"
 	http_ "github.com/cobratbq/goutils/std/net/http"
 	os_ "github.com/cobratbq/goutils/std/os"
@@ -40,7 +40,7 @@ func main() {
 				panic("Failed to download " + destinationPath + ": " + err.Error())
 			}
 			// no need to panic if document is simply not found (404)
-			builtin.RequireSuccess(os_.CreateEmptyFile(destinationPath),
+			assert.Success(os_.CreateEmptyFile(destinationPath),
 				"Failed to create empty file "+destinationPath+": %+v")
 			os.Stderr.WriteString("  not found: " + url + "\n")
 		}
