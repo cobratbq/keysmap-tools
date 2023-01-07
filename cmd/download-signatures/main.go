@@ -4,6 +4,7 @@ package main
 
 import (
 	"encoding/xml"
+	"errors"
 	"flag"
 	"net/http"
 	"os"
@@ -34,8 +35,8 @@ func main() {
 		}
 		url := generateURL(metadata.GroupID, metadata.ArtifactID, version)
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
-		if err := http_.DownloadToFilePath(destinationPath, url); err != nil {
-			if code, ok := err.(http_.ErrStatusCode); !ok || code != http.StatusNotFound {
+		if code, err := http_.DownloadToFilePath(destinationPath, url); err != nil {
+			if errors.Is(err, http_.ErrStatusCode) && code != http.StatusNotFound {
 				// TODO how should we behave in case of HTTP status code 500?
 				panic("Failed to download " + destinationPath + ": " + err.Error())
 			}

@@ -46,7 +46,7 @@ func main() {
 		url := generateMetadataURL(groupID, artifactID)
 		destFile := filepath.Join(*destination, strings.Join([]string{groupID, ":", artifactID, ".xml"}, ""))
 		os.Stderr.WriteString("Downloading " + url + " ...\n")
-		err := http.DownloadToFilePath(destFile, url)
+		_, err := http.DownloadToFilePath(destFile, url)
 		assert.Success(err, "Failed to download metadata for artifact "+groupID+":"+artifactID+": %+v")
 	}
 	if err != io.EOF {
