@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/cobratbq/goutils/assert"
 	io_ "github.com/cobratbq/goutils/std/io"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 func main() {
@@ -24,8 +24,6 @@ func main() {
 	assert.Success(err, "failed to read signature body")
 	switch key := pkt.(type) {
 	case *packet.PublicKey:
-		os.Stdout.WriteString(fmt.Sprintf("0x%040X", key.Fingerprint))
-	case *packet.PublicKeyV3:
 		os.Stdout.WriteString(fmt.Sprintf("0x%040X", key.Fingerprint))
 	default:
 		panic(fmt.Sprintf("Unsupported type: %#v", key))
