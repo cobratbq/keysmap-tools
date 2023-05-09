@@ -92,7 +92,7 @@ func valuate(v string) int64 {
 		return 0
 	}
 	if classify([]byte(v)) == numeric {
-		num := strconv.MustParseInt(v, 10, 64)
+		num := strconv.MustParseInt[int64](v, 10)
 		if num == 0 {
 			return 0
 		}
