@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -18,26 +17,30 @@ import (
 )
 
 func main() {
-	content, err := ioutil.ReadAll(os.Stdin)
+	content, err := io.ReadAll(os.Stdin)
 	assert.Success(err, "Failed to read content from signature file")
-	err = readSignaturePacket(bytes.NewBuffer(content))
+	err = readPacket(bytes.NewBuffer(content))
 	if err != io.ErrUnexpectedEOF {
 		return
 	}
-	err = readLegacyPacket(bytes.NewBuffer(content))
+	err = readLegacySignaturePacket(bytes.NewBuffer(content))
 	assert.Success(err, "Failed to read signature.")
 }
 
 // readSignaturePacket reads a signature packet and extracts the issuer key-id. ProtonMail/go-crypto
 // cannot work with SignatureV3 packets (legacy format).
-func readSignaturePacket(in io.Reader) error {
+func readPacket(in io.Reader) error {
 	block, err := armor.Decode(in)
 	if err == io.EOF {
 		return err
 	}
 	defer io_.Discard(block.Body)
 	assert.Success(err, "failed to read signature")
-	pkt, err := packet.NewReader(block.Body).Next()
+	return readSignature(block.Body)
+}
+
+func readSignature(in io.Reader) error {
+	pkt, err := packet.NewReader(in).Next()
 	if err == io.EOF {
 		return io.ErrUnexpectedEOF
 	}
@@ -45,6 +48,8 @@ func readSignaturePacket(in io.Reader) error {
 	switch sig := pkt.(type) {
 	case *packet.Signature:
 		os.Stdout.WriteString(fmt.Sprintf("%016X\n", *sig.IssuerKeyId))
+	case *packet.Compressed:
+		return readSignature(sig.Body)
 	default:
 		panic(fmt.Sprintf("Unsupported type: %#v", sig))
 	}
@@ -53,7 +58,7 @@ func readSignaturePacket(in io.Reader) error {
 
 // readLegacyPacket reads an openpgp signature. readLegacyPacket exists to handle SignatureV3, the
 // old signature format that ProtonMail/go-crypto does not support.
-func readLegacyPacket(in io.Reader) error {
+func readLegacySignaturePacket(in io.Reader) error {
 	block, err := gocryptoarmor.Decode(in)
 	if err == io.EOF {
 		return err
