@@ -5,6 +5,8 @@ github.com/cloudflare/circl v1.3.3 h1:fE/Qz0QdIGqeWfnwq0RE0R7MI51s0M2E4Ga9kq5AEM
 github.com/cloudflare/circl v1.3.3/go.mod h1:5XYMA4rFBvNIrhs50XuiBJ15vF2pZn4nnUKZrLbUZFA=
 github.com/cobratbq/goutils v0.0.0-20230802185225-d540f72572df h1:UIzkAa2q6TTVnC4Q4OYB2T2RmareW8XQumR49KMiR34=
 github.com/cobratbq/goutils v0.0.0-20230802185225-d540f72572df/go.mod h1:ZQi9/vUKrqj15zquA2rL9QRXIumlYduVScl5lvS5fsc=
+github.com/cobratbq/goutils v0.0.0-20240617174750-7c91075dc8a1 h1:Y/kx0A89Pkt8shCbiUmdI7h3rn2NjAsQJ7jmwy6qNn8=
+github.com/cobratbq/goutils v0.0.0-20240617174750-7c91075dc8a1/go.mod h1:ZQi9/vUKrqj15zquA2rL9QRXIumlYduVScl5lvS5fsc=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
